@@ -1,4 +1,3 @@
-
 """ Splits a sentence into substrings of length n """
 def getNGrams(sentence, n):
   """ Don't forget to append start and end sequences! """

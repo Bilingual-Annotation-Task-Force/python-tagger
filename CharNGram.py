@@ -53,7 +53,7 @@ class CharNGram:
 
   """ Using conditional frequency distribution, calculate and return p(c | ctx) """
   def ngramProb(ctx, c):
-    return 0.0
+    return c / ctx
   
   """ Multiply ngram probabilites for each ngram in word """
   def wordProb(word):

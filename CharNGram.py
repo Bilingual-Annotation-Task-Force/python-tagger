@@ -1,6 +1,13 @@
-""" Splits a sentence into substrings of length n """
+# CharNGram.py
+
+"""
+Splits string into character n-grams of length n
+ @param string the training data
+ @param n the n-gram length
+"""
 def getNGrams(sentence, n):
-  """ Don't forget to append start and end sequences! """
+  sentence = (" " * (n - 1)) + sentence + " "   # Append start and end spaces
+  return [string[i:i+n] for i in range(len(sentence) - n + 1)]
 
 
 """ Creates the conditional frequency distribution

@@ -1,15 +1,15 @@
 # CharNGram.py
 
 """
-Splits string into character n-grams of length n
+Splits sentence into character n-grams of length n
 
- @param string the training data
+ @param sentence the training data
  @param n the n-gram length
  @return list of ngrams
 """
 def getNGrams(sentence, n):
   sentence = (" " * (n - 1)) + sentence + " "
-  return [string[i:i+n] for i in range(len(sentence) - n + 1)]
+  return [sentence[i:i+n] for i in range(len(sentence) - n + 1)]
 
 
 """ Creates the conditional frequency distribution
@@ -48,12 +48,19 @@ class CharNGram:
   def __init__(self, name, conditionalCounts, n):
     self.name = name
     self.data = data
+    self.conditionalCounts = conditionalCounts
     self.n = n
 
 
   """ Using conditional frequency distribution, calculate and return p(c | ctx) """
   def ngramProb(ctx, c):
-    return c / ctx
+    if ctx in conditionalCounts:
+      if (c, _) in conditionalCounts[ctx]:
+        return 1.0/len(conditionalCounts[ctx])
+      else:
+        return 0.0
+    else:
+      return 0.0
   
   """ Multiply ngram probabilites for each ngram in word """
   def wordProb(word):

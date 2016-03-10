@@ -9,7 +9,7 @@ Splits sentence into character n-grams of length n
 """
 def getNGrams(sentence, n):
   sentence = (" " * (n - 1)) + sentence + " "
-  return [sentence[i:i+n] for i in range(len(sentence) - n + 1)]
+  return [sentence[i:i+n] for i in xrange(len(sentence) - n + 1)]
 
 
 """ Creates the conditional frequency distribution
@@ -17,8 +17,6 @@ def getNGrams(sentence, n):
     @param sentences a list of sentences from the training data
     @param n the length of an n-gram
     @return a mapping of context (unique substrings of the first n-1 characters) to endings (last character) and their frequencies
-      a dictionary of mapping between the first n - 1 characters of an ngram and
-      a list of tuples of the ending characters
 
   for each sentence in list of sentences:
         get n-grams using above method
@@ -32,37 +30,41 @@ def getNGrams(sentence, n):
                 as an key-value pair.
 """
 def getConditionalCounts(sentences, n):
-  freqCount = {}
+  condCounts = {}
   for sentence in sentences:
     ngrams = getNGrams(sentence, n)
     for gram in ngrams:
       context = gram[:n - 1]
-      if not context in freqCount:
-        freqCount[context] = [(gram[-1], 1)]
-      else:
-        freqCount[context].append((gram[-1], 1))
-  return freqCount
-
+      lastChar = gram[-1]
+      if not context in condCounts:
+        condCounts[context] = {}
+      if not lastChar in condCounts[context]:
+        condCounts[context][lastChar] = 0
+      condCounts[context][lastChar] += 1
+  return condCounts
 
 class CharNGram:
   def __init__(self, name, conditionalCounts, n):
     self.name = name
-    self.data = data
-    self.conditionalCounts = conditionalCounts
+    self.condCounts = conditionalCounts
     self.n = n
 
-
-  """ Using conditional frequency distribution, calculate and return p(c | ctx) """
+    """ Using conditional frequency distribution, calculate and return p(c | ctx) """
   def ngramProb(ctx, c):
-    if ctx in conditionalCounts:
-      if (c, _) in conditionalCounts[ctx]:
-        return 1.0/len(conditionalCounts[ctx])
+    if ctx in self.condCounts:
+      if c in self.condCounts[ctx]:
+        count = self.condCounts[ctx][c]
+        return 1.0/len(self.condCounts[ctx])
       else:
         return 0.0
     else:
       return 0.0
-  
-  """ Multiply ngram probabilites for each ngram in word """
+
+    """ Multiply ngram probabilites for each ngram in word """
   def wordProb(word):
-    return 0.0
+    prob = 1.0
+    for ctx, counts in getConditionalCounts([word], self.n).iteritems():
+      for lastChar, count in counts.iteritems():
+        prob *= ngramProb(ctx, lastChar) * count
+    return prob
 

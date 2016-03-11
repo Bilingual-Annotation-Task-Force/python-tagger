@@ -1,5 +1,7 @@
 # CharNGram.py
 
+import itertools
+
 """
 Splits sentence into character n-grams of length n
 
@@ -44,24 +46,33 @@ def getConditionalCounts(sentences, n):
   return condCounts
 
 class CharNGram:
-  def __init__(self, name, conditionalCounts, n):
-    self.name = name
+  def __init__(self, language, conditionalCounts, n):
+    self.language = language
     self.condCounts = conditionalCounts
     self.n = n
+    self._getNormalizedCounts()
+
+  def _getNormalizedCounts(self):
+    for ctx, counts in self.condCounts.iteritems():
+      sum = 0.0
+      for lastChar, count in counts.iteritems():
+        sum += count
+      for lastChar, count in counts.iteritems():
+        self.condCounts[ctx][lastChar] = (count + 1)/(sum + 26)
 
     """ Using conditional frequency distribution, calculate and return p(c | ctx) """
-  def ngramProb(ctx, c):
+  def ngramProb(self, ctx, c):
     if ctx in self.condCounts:
       if c in self.condCounts[ctx]:
         count = self.condCounts[ctx][c]
-        return 1.0/len(self.condCounts[ctx])
+        return (count * 1.0)/len(self.condCounts[ctx])
       else:
         return 0.0
     else:
       return 0.0
 
     """ Multiply ngram probabilites for each ngram in word """
-  def wordProb(word):
+  def wordProb(self, word):
     prob = 1.0
     for ctx, counts in getConditionalCounts([word], self.n).iteritems():
       for lastChar, count in counts.iteritems():

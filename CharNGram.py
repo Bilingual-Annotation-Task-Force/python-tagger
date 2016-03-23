@@ -1,4 +1,5 @@
 # CharNGram.py
+# Using Python 2.7.11
 
 import itertools
 
@@ -54,11 +55,11 @@ class CharNGram:
 
   def _getNormalizedCounts(self):
     for ctx, counts in self.condCounts.iteritems():
-      sum = 0.0
+      charSum = 0.0
       for lastChar, count in counts.iteritems():
-        sum += count
+        charSum += count
       for lastChar, count in counts.iteritems():
-        self.condCounts[ctx][lastChar] = (count + 1)/(sum + 26)
+        self.condCounts[ctx][lastChar] = count/charSum
 
     """ Using conditional frequency distribution, calculate and return p(c | ctx) """
   def ngramProb(self, ctx, c):

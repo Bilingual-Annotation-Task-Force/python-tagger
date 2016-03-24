@@ -59,24 +59,27 @@ class CharNGram:
       for lastChar, count in counts.iteritems():
         charSum += count
       for lastChar, count in counts.iteritems():
-        self.condCounts[ctx][lastChar] = count/charSum
+        self.condCounts[ctx][lastChar] = (count + 1)/(charSum + 26)
 
     """ Using conditional frequency distribution, calculate and return p(c | ctx) """
   def ngramProb(self, ctx, c):
     if ctx in self.condCounts:
       if c in self.condCounts[ctx]:
         count = self.condCounts[ctx][c]
-        return (count * 1.0)/len(self.condCounts[ctx])
+        if count > 0:
+          return count
+        else:
+          return 1.0/(len(self.condCounts[ctx]) + 26)
       else:
-        return 0.0
+        return 1.0/(len(self.condCounts[ctx]) + 26)
     else:
-      return 0.0
+      return 1.0/26
 
     """ Multiply ngram probabilites for each ngram in word """
   def wordProb(self, word):
     prob = 1.0
     for ctx, counts in getConditionalCounts([word], self.n).iteritems():
       for lastChar, count in counts.iteritems():
-        prob *= ngramProb(ctx, lastChar) * count
+        prob *= self.ngramProb(ctx, lastChar) * count
     return prob
 

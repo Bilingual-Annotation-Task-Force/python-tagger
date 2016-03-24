@@ -37,12 +37,8 @@ def getConditionalCounts(sentences, n):
   for sentence in sentences:
     ngrams = getNGrams(sentence, n)
     for gram in ngrams:
-      context = gram[:n - 1]
-      lastChar = gram[-1]
-      if not context in condCounts:
-        condCounts[context] = {}
-      if not lastChar in condCounts[context]:
-        condCounts[context][lastChar] = 0
+      context, lastChar = gram[:n - 1], gram[-1]
+      condCounts.setdefault(context, {}).setdefault(lastChar, 0)
       condCounts[context][lastChar] += 1
   return condCounts
 

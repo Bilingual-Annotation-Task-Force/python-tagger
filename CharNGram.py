@@ -68,13 +68,7 @@ class CharNGram:
     calculate and return p(c | ctx)
     """
   def ngramProb(self, ctx, c):
-    if ctx in self.condCounts:
-      if c in self.condCounts[ctx]:
-        return self.condCounts[ctx][c]
-      else:
-        return 1.0/float(self.numLetters)
-    else:
-      return 1.0/float(self.numLetters)
+    return self.condCounts.get(ctx, {}).get(c, 1.0/float(self.numLetters))
 
     """ Multiply ngram probabilites for each ngram in word """
   def wordProb(self, word):

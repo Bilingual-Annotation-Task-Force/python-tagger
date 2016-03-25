@@ -8,7 +8,7 @@ class codeSwitchedLanguageModel:
     self.models = models
 
   def guess(self, word):
-    highestProb = max([model.wordProb(word.lower()) for model in self.models])
+    highestProb = max(model.wordProb(word.lower()) for model in self.models)
     guess = [model for model in self.models 
                    if model.wordProb(word.lower()) == highestProb]
     return guess[0].language

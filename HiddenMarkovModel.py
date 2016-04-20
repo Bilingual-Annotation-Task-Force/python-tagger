@@ -1,6 +1,8 @@
 # HiddenMarkovModel.py
 # Using Python 2.7.11
 
+import math
+
 class HiddenMarkovModel:
   def __init__(self, words, tagSet, transitions, cslm):
     self.words = words
@@ -28,6 +30,8 @@ class HiddenMarkovModel:
   def retrace(self):
     return 0.0
 
-  # Need data structure to hold prob, prevTag
-  # Inner Classes in Python?
+class Node:
+  def __init__(self, prob, prevTag):
+    self.prob = prob
+    self.prevTag = prevTag
 

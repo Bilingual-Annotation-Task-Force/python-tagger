@@ -3,7 +3,7 @@
 
 from CharNGram import *
 
-class codeSwitchedLanguageModel:
+class CodeSwitchedLanguageModel:
   def __init__(self, models):
     self.models = models
 

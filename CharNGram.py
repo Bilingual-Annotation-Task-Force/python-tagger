@@ -2,6 +2,7 @@
 # Using Python 2.7.11
 
 import itertools
+import math
 
 """
 Splits sentence into character n-grams of length n
@@ -51,7 +52,7 @@ def getConditionalCounts(sentences, n):
 
 
 class CharNGram:
-  def __init__(self, language, conditionalCounts, n, numLetters):
+  def __init__(self, language, conditionalCounts, n, numLetters=26):
     self.language = language
     self.condCounts = conditionalCounts
     self.n = n
@@ -76,4 +77,4 @@ class CharNGram:
     for ctx, counts in getConditionalCounts([word], self.n).iteritems():
       for lastChar, count in counts.iteritems():
         prob *= self.ngramProb(ctx, lastChar) * count
-    return prob
+    return math.log(prob)

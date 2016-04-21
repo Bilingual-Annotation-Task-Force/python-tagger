@@ -19,7 +19,7 @@ class Annotator:
       hmmtags = self.hmm.generateTags()
       words = self.hmm.words
 
-      for k in xrange(len(words)):
+      for k in xrange(len(words)): #to make more pythonic, iterate directly over words: for k in words
         guess = hmmtags[k]
         word = words[k]
 

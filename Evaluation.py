@@ -4,8 +4,9 @@
 import sys
 import getopt
 import re
-import CharNGram
 import io
+import HiddenMarkovModel
+import Annotator
 
 """ Splits text input into words and formats them, splitting by whitespace
 
@@ -24,47 +25,43 @@ class Evaluator:
     self.hmm = hmm
     self.engClassifier = 0
     self.spanClassifier = 0
-    # Dict of classifiers with name as key and value as classifier?
 
   # Write output to file
   def annotate(self, filename):
-    with io.open(filename + '_annotated.txt', 'w', encoding = 'utf8') as output:
-      output.write('Token, Tag')
+    with io.open(filename + '_annotated.txt', 'w', encoding='utf-8') as output:
+      output.write('Token, Tag\n')
       hmmtags = self.hmm.generateTags()
       words = self.hmm.words
 
-      for k in xrange(len(words)):
+      for k, word in enumerate(words):
         guess = hmmtags[k]
-        word = words[k]
 
         if word.match('\\p{P}'):
           guess = 'Punct'
 
-        engClassification = self.engClassifier.classiftyWithInlineXML(word)
-        spanClassification = self.spanClassifier.classiftyWithInlineXML(word)
+        engTag = self.engClassifier.tag(word)
+        spanTag = self.spanClassifier.tag(word)
 
-        if '<' in engClassification and guess == 'Eng':
-          guess = 'EngNamedEnt'
+        if engTag[1] != 'O' and guess == 'Eng':
+            guess = 'EngNamedEnt'
 
-        if '<' in spanClassification and guess == 'Spn':
+        if spanTag[1] != 'O' and guess == 'Spn':
           guess = 'SpnNamedEnt'
 
-        output.write(word + ',' + guess)
-
-      output.close()
+        output.write(word + ',' + guess + '\n')
 
   # Write evaluation of annotation to file
   def evaluate(self, goldStandard):
-    with io.open(goldStandard + '_outputwithHMM.txt', 'w', encoding = 'utf8') as output:
-      output.write('Word \t Guess \t Tag \t Correct/Incorrect')
-      lines = io.open(goldStandard, 'r', encoding = 'utf8').readlines()
+    with io.open(goldStandard + '_outputwithHMM.txt', 'w', encoding='utf8') as output:
+      output.write('Word \t Guess \t Tag \t Correct/Incorrect\n')
+      lines = io.open(goldStandard, 'r', encoding='utf8').readlines()
       hmmtags = self.hmm.generateTags()
 
       correct = 0
       total = 0
 
-      for k in xrange(len(lines)):
-        annotation = lines[k].split('\t')
+      for k, line in enumerate(lines):
+        annotation = line.split('\t')
         word = annotation[0]
         tag = annotation[1]
         guess = hmmtags[k]
@@ -72,13 +69,20 @@ class Evaluator:
         if word.match('\\p{P}'):
           guess = 'Punct'
 
-        engClassification = self.engClassifier.classiftyWithInlineXML(word)
-        if '<' in engClassification:
-          guess = 'Named Ent'
+        engTag = self.engClassifier.tag(word)
+        spanTag = self.spanClassifier.tag(word)
 
+        if engTag[1] != 'O' and guess == 'Eng':
+          guess = 'EngNamedEnt'
+
+        if spanTag[1] != 'O' and guess == 'Spn':
+          guess = 'SpnNamedEnt'
+
+        # CSV or TSV output?
         outputFile.write(word + ',' + guess + ',' + tag)
 
-        if tag == 'Eng' or tag == 'Spn' or tag == 'Named Ent':
+        # Handling Named Entity case?
+        if tag in ('Eng', 'Spn', 'Named Ent'):
           if tag == 'Eng' and guess == 'Eng':
             correct += 1
 
@@ -95,9 +99,7 @@ class Evaluator:
 
         output.write('\n')
 
-      output.close()
-      return correct / total
-
+      return correct / float(total)
 
 """
 Process arguments
@@ -107,13 +109,13 @@ Build Markov model with Expectation Minimization
 Annotate
 Evaluate
 """
-def main(argv = sys.argv):
+def main(argv=sys.argv):
   testCorpus = 'INSERT RELATIVE PATH HERE' # Extract from arguments?
   goldStandard = 'INSERT RELATIVE PATH HERE'
 
   n = 5
-  engData = toWords(io.open('PATH TO ENG DATA', 'r', encoding = 'utf8').readlines())
-  spanData = toWords(io.open('PATH TO SPAN DATA', 'r', encoding = 'utf8').readlines())
+  engData = toWords(io.open('PATH TO ENG DATA', 'r', encoding='utf8').readlines())
+  spanData = toWords(io.open('PATH TO SPAN DATA', 'r', encoding='utf8').readlines())
   enModel = NGramModel('Eng', getConditionalCounts(engData, n), n)
   esModel = NGramModel('Spn', getConditionalCounts(spanData, n), n)
 

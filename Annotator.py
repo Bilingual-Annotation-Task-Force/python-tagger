@@ -4,6 +4,7 @@
 import io
 import HiddenMarkovModel
 from nltk.tag.stanford import StanfordNERTagger
+
 class Annotator:
   def __init__(self, hmm):
     self.hmm = hmm
@@ -15,24 +16,23 @@ class Annotator:
   # Write output to file
   def annotate(self, filename):
     with io.open(filename + '_annotated.txt', 'w', encoding='utf-8') as output:
-      output.write('Token, Tag')
+      output.write('Token, Tag\n')
       hmmtags = self.hmm.generateTags()
       words = self.hmm.words
 
-      for k in xrange(len(words)): #to make more pythonic, iterate directly over words: for k in words
+      for k, word in enumerate(words):
         guess = hmmtags[k]
-        word = words[k]
 
         if word.match('\\p{P}'):
           guess = 'Punct'
 
-        engTag = self.engClassifier.tag(words[k])
-        spanTag = self.spanClassifier.tag(words[k])
+        engTag = self.engClassifier.tag(word)
+        spanTag = self.spanClassifier.tag(word)
 
         if engTag[1] != 'O' and guess == 'Eng':
-            guess = 'EngNamedEnt'
+          guess = 'EngNamedEnt'
 
         if spanTag[1] != 'O' and guess == 'Spn':
           guess = 'SpnNamedEnt'
 
-        output.write(word + ',' + guess)
+        output.write(word + ',' + guess + '\n')

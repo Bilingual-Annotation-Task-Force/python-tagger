@@ -16,8 +16,9 @@ import Annotator
 
 def toWords(lines):
   for i, line in enumerate(lines):
-    line = re.sub('[\W+]', "", line)
-    lines[i] = line.lower().split(" ")
+    tokens = re.compile(r'[\w]+|[^\s\w]', re.UNICODE)
+    line = re.findall(tokens, line) #create a list of tokens from the line
+    lines[i] = [word.lower() for word in line]
 
 class Evaluator:
   def __init__(self, cslm, hmm):

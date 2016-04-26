@@ -10,15 +10,15 @@ import Annotator
 
 """ Splits text input into words and formats them, splitting by whitespace
 
-    @param lines a list of text lines 
-    @return a list of lists of formatted words
+    @param text a string of text 
+    @return a list of formatted words
 """
 
 def toWords(text):
-  token = re.compile(r'[\w]+|[^\s\w]', re.UNICODE)
+  token = re.compile(ur'[\w]+|[^\s\w]', re.UNICODE) #require utf-8 encoding
   tokens = re.findall(token, text) #create a list of tokens from the line:
-  tokens = [word.lower() for word in tokens]
-
+  return [word.lower() for word in tokens]
+  
 class Evaluator:
   def __init__(self, cslm, hmm):
     self.cslm = cslm

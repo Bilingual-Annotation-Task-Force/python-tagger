@@ -40,7 +40,7 @@ class Evaluator:
         if word.match('\\p{P}'):
           guess = 'Punct'
         
-        word_context = " ".join(word[k-3:k+3])
+        word_context = " ".join(words[k-3:k+3])
         engTag = self.engClassifier.tag(word_context)[3]
         spanTag = self.spanClassifier.tag(word_context)[3]
 

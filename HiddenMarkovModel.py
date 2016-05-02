@@ -68,7 +68,7 @@ class HiddenMarkovModel:
     # last = 0
     # for x, taglist in enumerate(self.tagSet):
     #   for y, tag in enumerate(taglist):
-    #     if self.v[len(self.words) - 1][x].prob > self.v[len(self.words) - 1][y]:
+    #     if self.v[len(self.words) - 1][x].prob > self.v[len(self.words) - 1][y].prob:
     #       last = x
     #     else:
     #       last = y

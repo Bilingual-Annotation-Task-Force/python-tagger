@@ -1,7 +1,7 @@
 # CodeSwitchedLanguageModel.py
 # Using Python 2.7.11
 
-from CharNGram import *
+import CharNGram
 
 class CodeSwitchedLanguageModel:
   def __init__(self, models):

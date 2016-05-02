@@ -62,7 +62,7 @@ class HiddenMarkovModel:
 
     # Using reduce
     last = reduce(lambda x, y: x if self.v[len(self.words) - 1][x].prob >
-           self.v[len(self.words) - 1][y] else y, xrange(len(self.tagSet)))
+           self.v[len(self.words) - 1][y].prob else y, xrange(len(self.tagSet)))
 
     # Using loops
     # last = 0

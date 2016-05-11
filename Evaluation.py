@@ -39,15 +39,16 @@ class Evaluator:
 
         if word.match('\\p{P}'):
           guess = 'Punct'
-
-        engTag = self.engClassifier.tag(word)
-        spanTag = self.spanClassifier.tag(word)
+        
+        word_context = " ".join(words[k-3:k+3])
+        engTag = self.engClassifier.tag(word_context)[3]
+        spanTag = self.spanClassifier.tag(word_context)[3]
 
         if engTag[1] != 'O' and guess == 'Eng':
-            guess = 'EngNamedEnt'
+            guess = engTag[1]
 
         if spanTag[1] != 'O' and guess == 'Spn':
-          guess = 'SpnNamedEnt'
+          guess = spanTag[1]
 
         output.write(word + ',' + guess + '\n')
 

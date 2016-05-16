@@ -10,16 +10,15 @@ import Annotator
 
 """ Splits text input into words and formats them, splitting by whitespace
 
-    @param lines a list of text lines 
-    @return a list of lists of formatted words
+    @param text a string of text 
+    @return a list of formatted words
 """
 
-def toWords(lines):
-  for i, line in enumerate(lines):
-    tokens = re.compile(r'[\w]+|[^\s\w]', re.UNICODE)
-    line = re.findall(tokens, line) #create a list of tokens from the line
-    lines[i] = [word.lower() for word in line]
-
+def toWords(text):
+  token = re.compile(ur'[\w]+|[^\s\w]', re.UNICODE) #require utf-8 encoding
+  tokens = re.findall(token, text) #create a list of tokens from the line:
+  return [word.lower() for word in tokens]
+  
 class Evaluator:
   def __init__(self, cslm, hmm):
     self.cslm = cslm
@@ -116,8 +115,8 @@ def main(argv=sys.argv):
   goldStandard = 'INSERT RELATIVE PATH HERE'
 
   n = 5
-  engData = toWords(io.open('PATH TO ENG DATA', 'r', encoding='utf8').readlines())
-  spanData = toWords(io.open('PATH TO SPAN DATA', 'r', encoding='utf8').readlines())
+  engData = toWords(io.open('PATH TO ENG DATA', 'r', encoding='utf8').read())
+  spanData = toWords(io.open('PATH TO SPAN DATA', 'r', encoding='utf8').read())
   enModel = NGramModel('Eng', getConditionalCounts(engData, n), n)
   esModel = NGramModel('Spn', getConditionalCounts(spanData, n), n)
 

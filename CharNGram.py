@@ -5,17 +5,17 @@ import itertools
 import math
 
 """
-Splits sentence into character n-grams of length n
+Splits text into character n-grams of length n
 
- @param sentence the training data
+ @param text the training data
  @param n the n-gram length
  @return list of ngrams
 """
 
 
-def getNGrams(sentence, n):
-  sentence = (" " * (n - 1)) + sentence + " "
-  return [sentence[i:i+n] for i in xrange(len(sentence) - n + 1)]
+def getNGrams(text, n):
+  text = (" " * (n - 1)) + text + " "
+  return [text[i:i+n] for i in xrange(len(text) - n + 1)]
 
 
 """ Creates the conditional frequency distribution

@@ -13,10 +13,10 @@ import Annotator
     @param text a string of text 
     @return a list of formatted words
 """
-
+#non-case-sensitive tokenizer for ngram probabilities only
 def toWords(text):
   token = re.compile(ur'[\w]+|[^\s\w]', re.UNICODE) #require utf-8 encoding
-  tokens = re.findall(token, text) #create a list of tokens from the line:
+  re.findall(token, text) #create a list of tokens from the line:
   return [word.lower() for word in tokens]
   
 class Evaluator:
@@ -31,18 +31,23 @@ class Evaluator:
     with io.open(filename + '_annotated.txt', 'w', encoding='utf-8') as output:
       output.write('Token, Tag\n')
       hmmtags = self.hmm.generateTags()
-      words = self.hmm.words
+      words = self.hmm.words #this needs to be case-sensitive or NER won't work
 
       for k, word in enumerate(words):
         guess = hmmtags[k]
 
+        #check if word is punctuation
         if word.match('\\p{P}'):
           guess = 'Punct'
         
-        word_context = " ".join(words[k-3:k+3])
-        engTag = self.engClassifier.tag(word_context)[3]
-        spanTag = self.spanClassifier.tag(word_context)[3]
-
+        #check if word is NE using surround context 
+        if k < 2:
+        engTag = self.engClassifier.tag([word])[0][1]
+        spanTag = self.spanClassifier.tag([word])[0][1]
+        else:
+        engTag = self.engClassifier.tag(words[k-2:k+2])[2][1]
+        spanTag = self.spanClassifier.tag(words[k-2:k+2])[2][1]
+        
         if engTag[1] != 'O' and guess == 'Eng':
             guess = engTag[1]
 

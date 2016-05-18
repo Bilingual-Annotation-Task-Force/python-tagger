@@ -13,10 +13,10 @@ import Annotator
     @param text a string of text 
     @return a list of formatted words
 """
-#non-case-sensitive tokenizer for ngram probabilities only
+#case-insensitive tokenizer for ngram probabilities only
 def toWords(text):
-  token = re.compile(ur'[\w]+|[^\s\w]', re.UNICODE) #require utf-8 encoding
-  re.findall(token, text) #create a list of tokens from the line:
+  token = re.compile(ur'[\w]+|[^\s\w]', re.UNICODE) #requires utf-8 encoding
+  re.findall(token, text)
   return [word.lower() for word in tokens]
   
 class Evaluator:
@@ -26,21 +26,18 @@ class Evaluator:
     self.engClassifier = 0
     self.spanClassifier = 0
 
-  # Write output to file
+  # Write annotation to output file
   def annotate(self, filename):
     with io.open(filename + '_annotated.txt', 'w', encoding='utf-8') as output:
-      output.write('Token, Tag\n')
+      output.write('Token, Language, Named Entity\n') #write headers
       hmmtags = self.hmm.generateTags()
       words = self.hmm.words #this needs to be case-sensitive or NER won't work
 
       for k, word in enumerate(words):
-        guess = hmmtags[k]
-
-        #check if word is punctuation
-        if word.match('\\p{P}'):
-          guess = 'Punct'
+        #check if punctuation else use hmmtag
+        guess = 'Punct' if word.match('\\p{P}') else hmmtags[k]
         
-        #check if word is NE using surround context 
+        #check if word is NE 
         if k < 2:
         engTag = self.engClassifier.tag([word])[0][1]
         spanTag = self.spanClassifier.tag([word])[0][1]
@@ -48,13 +45,12 @@ class Evaluator:
         engTag = self.engClassifier.tag(words[k-2:k+2])[2][1]
         spanTag = self.spanClassifier.tag(words[k-2:k+2])[2][1]
         
-        if engTag[1] != 'O' and guess == 'Eng':
-            guess = engTag[1]
-
-        if spanTag[1] != 'O' and guess == 'Spn':
-          guess = spanTag[1]
-
-        output.write(word + ',' + guess + '\n')
+        #mark as NE either classifier identifies it
+        if engTag != 'O' or spanTag != 'O:
+            NE = "{}/{}".format(engTag, spanTag)
+        else: NE = "O"
+        
+        output.write("{},{},{}\n".format(word, guess, NE))
 
   # Write evaluation of annotation to file
   def evaluate(self, goldStandard):
@@ -66,24 +62,22 @@ class Evaluator:
       correct = 0
       total = 0
 
-      for k, line in enumerate(lines):
-        annotation = line.split('\t')
-        word = annotation[0]
-        tag = annotation[1]
-        guess = hmmtags[k]
-
-        if word.match('\\p{P}'):
-          guess = 'Punct'
-
-        engTag = self.engClassifier.tag(word)
-        spanTag = self.spanClassifier.tag(word)
-
-        if engTag[1] != 'O' and guess == 'Eng':
-          guess = 'EngNamedEnt'
-
-        if spanTag[1] != 'O' and guess == 'Spn':
-          guess = 'SpnNamedEnt'
-
+      for k, word in enumerate(words):
+        #check if punctuation else use hmmtag
+        guess = 'Punct' if word.match('\\p{P}') else hmmtags[k]
+        
+        #check if word is NE 
+        if k < 2:
+        engTag = self.engClassifier.tag([word])[0][1]
+        spanTag = self.spanClassifier.tag([word])[0][1]
+        else:
+        engTag = self.engClassifier.tag(words[k-2:k+2])[2][1]
+        spanTag = self.spanClassifier.tag(words[k-2:k+2])[2][1]
+        
+        #mark as NE either classifier identifies it
+        if engTag != 'O' or spanTag != 'O:
+            NE = "{}/{}".format(engTag, spanTag)
+        else: NE = "O"
         # CSV or TSV output?
         outputFile.write(word + ',' + guess + ',' + tag)
 

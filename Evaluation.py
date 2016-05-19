@@ -28,10 +28,10 @@ class Evaluator:
 
   # Write annotation to output file
   def annotate(self, filename):
-    with io.open(filename + '_annotated.txt', 'w', encoding='utf-8') as output:
-      output.write('Token, Language, Named Entity\n') #write headers
+    with io.open(filename + '_annotated.csv', 'w', encoding='utf-8') as output:
+      output.write('Token,Language,Named Entity\n') #write headers
       hmmtags = self.hmm.generateTags()
-      words = self.hmm.words #this needs to be case-sensitive or NER won't work
+      words = self.hmm.words #this needs to be case-sensitive and separate punct from string
 
       for k, word in enumerate(words):
         #check if punctuation else use hmmtag
@@ -45,7 +45,7 @@ class Evaluator:
         engTag = self.engClassifier.tag(words[k-2:k+2])[2][1]
         spanTag = self.spanClassifier.tag(words[k-2:k+2])[2][1]
         
-        #mark as NE either classifier identifies it
+        #mark as NE if either classifier identifies it
         if engTag != 'O' or spanTag != 'O:
             NE = "{}/{}".format(engTag, spanTag)
         else: NE = "O"
@@ -54,15 +54,18 @@ class Evaluator:
 
   # Write evaluation of annotation to file
   def evaluate(self, goldStandard):
-    with io.open(goldStandard + '_outputwithHMM.txt', 'w', encoding='utf8') as output:
-      output.write('Word \t Guess \t Tag \t Correct/Incorrect\n')
+    with io.open(goldStandard + '_outputwithHMM.csv', 'w', encoding='utf8') as output:
+      output.write('Word,Guess,Tag,Correct/Incorrect\n')
       lines = io.open(goldStandard, 'r', encoding='utf8').readlines()
       hmmtags = self.hmm.generateTags()
 
       correct = 0
       total = 0
 
-      for k, word in enumerate(words):
+      for k, line in enumerate(lines):
+        index = line.split(",")[0]
+        word = line.split(",")[1]
+        tag = line.split(",")[2]
         #check if punctuation else use hmmtag
         guess = 'Punct' if word.match('\\p{P}') else hmmtags[k]
         

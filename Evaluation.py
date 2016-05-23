@@ -6,103 +6,109 @@ import getopt
 import re
 import io
 import HiddenMarkovModel
-import Annotator
+import string
+from nltk.tag.stanford import StanfordNERTagger
+
+
 
 """ Splits text input into words and formats them, splitting by whitespace
 
-    @param text a string of text 
+    @param text a string of text
     @return a list of formatted words
 """
 #case-insensitive tokenizer for ngram probabilities only
 def toWords(text):
   token = re.compile(ur'[\w]+|[^\s\w]', re.UNICODE) #requires utf-8 encoding
-  re.findall(token, text)
+  tokens = re.findall(token, text)
   return [word.lower() for word in tokens]
-  
+
 class Evaluator:
   def __init__(self, cslm, hmm):
     self.cslm = cslm
     self.hmm = hmm
-    self.engClassifier = 0
-    self.spanClassifier = 0
+    self.engClassifier = StanfordNERTagger("../stanford-ner-2015-04-20/classifiers/english.all.3class.distsim.crf.ser.gz",
+        "../stanford-ner-2015-04-20/stanford-ner.jar")
+    self.spanClassifier = StanfordNERTagger("../stanford-ner-2015-04-20/classifiers/spanish.ancora.distsim.s512.crf.ser.gz",
+        "../stanford-ner-2015-04-20/stanford-ner.jar")
 
-  # Write annotation to output file
-  def annotate(self, filename):
-    with io.open(filename + '_annotated.csv', 'w', encoding='utf-8') as output:
-      output.write('Token,Language,Named Entity\n') #write headers
-      hmmtags = self.hmm.generateTags()
-      words = self.hmm.words #this needs to be case-sensitive and separate punct from string
+  def _tagger(self):
+      #can hmm accept accept list?
+      hmmtags = self.hmm.generateTags() #not quite sure where/how to pass the text to the hmm
+      words = self.hmm.words #this needs to be case-sensitive or NER won't work
+      taggedTokens = [("Token", "Language", "Named Entity")] #create headers
 
       for k, word in enumerate(words):
+
         #check if punctuation else use hmmtag
-        guess = 'Punct' if word.match('\\p{P}') else hmmtags[k]
-        
-        #check if word is NE 
-        if k < 2:
-        engTag = self.engClassifier.tag([word])[0][1]
-        spanTag = self.spanClassifier.tag([word])[0][1]
-        else:
-        engTag = self.engClassifier.tag(words[k-2:k+2])[2][1]
-        spanTag = self.spanClassifier.tag(words[k-2:k+2])[2][1]
-        
-        #mark as NE if either classifier identifies it
-        if engTag != 'O' or spanTag != 'O:
+        lang = 'Punct' if word in string.punctuation else hmmtags[k]
+
+        #check if word is NE
+        try:
+          engTag = self.engClassifier.tag(words[k-2:k+2])[2][1]
+          spanTag = self.spanClassifier.tag(words[k-2:k+2])[2][1]
+
+        except IndexError:
+          engTag = self.engClassifier.tag([word])[0][1]
+          spanTag = self.spanClassifier.tag([word])[0][1]
+
+        #mark as NE either classifier identifies it
+        if engTag != 'O' or spanTag != 'O':
             NE = "{}/{}".format(engTag, spanTag)
         else: NE = "O"
-        
-        output.write("{},{},{}\n".format(word, guess, NE))
+        taggedTokens.append((word, lang, NE))
+      return taggedTokens
+
+  # Write annotation to output file
+  def annotate(self, textfile):
+    with io.open(textfile + '_annotated.txt', 'w', encoding='utf-8') as output:
+      text = io.open(textfile).read()
+      for line in _tagger(text):
+        print>>output, "{},{},{}\n".format(*line)
 
   # Write evaluation of annotation to file
   def evaluate(self, goldStandard):
-    with io.open(goldStandard + '_outputwithHMM.csv', 'w', encoding='utf8') as output:
-      output.write('Word,Guess,Tag,Correct/Incorrect\n')
+    with io.open(goldStandard + '_outputwithHMM.txt', 'w', encoding='utf8') as output:
       lines = io.open(goldStandard, 'r', encoding='utf8').readlines()
-      hmmtags = self.hmm.generateTags()
+      text = [x.split(",")[1] for x in lines] #convert to string?
+      gold_tags = [x.split(",")[2] for x in lines]
+      annoated_output = _tagger(text)
+      lang_tags = [x.split(",")[1] for x in annoated_output]
+      ne_tags = [x.split(",")[2] for x in annoated_output]
 
-      correct = 0
-      total = 0
+      langCorrect = langTotal = NECorrect = NETotal = 0
 
-      for k, line in enumerate(lines):
-        index = line.split(",")[0]
-        word = line.split(",")[1]
-        tag = line.split(",")[2]
-        #check if punctuation else use hmmtag
-        guess = 'Punct' if word.match('\\p{P}') else hmmtags[k]
-        
-        #check if word is NE 
-        if k < 2:
-        engTag = self.engClassifier.tag([word])[0][1]
-        spanTag = self.spanClassifier.tag([word])[0][1]
-        else:
-        engTag = self.engClassifier.tag(words[k-2:k+2])[2][1]
-        spanTag = self.spanClassifier.tag(words[k-2:k+2])[2][1]
-        
-        #mark as NE either classifier identifies it
-        if engTag != 'O' or spanTag != 'O:
-            NE = "{}/{}".format(engTag, spanTag)
-        else: NE = "O"
-        # CSV or TSV output?
-        outputFile.write(word + ',' + guess + ',' + tag)
-
+      evaluations = []
+     #compare gold standard and model tags
+      for word, gold, lang, NE in zip(text, gold_tags, lang_tags, ne_tags):
         # Handling Named Entity case?
-        if tag in ('Eng', 'Spn', 'Named Ent'):
-          if tag == 'Eng' and guess == 'Eng':
-            correct += 1
 
-          elif tag == 'Spn' and guess == 'Spn':
-            correct += 1
-
-          elif tag == 'Named Ent' and guess == 'Named Ent':
-            correct += 1
-
+        #evaluate language tags
+        if gold in ('Eng', 'Spn'):
+          langTotal += 1
+          if gold == 'Eng' and lang == 'Eng' and NE==0:
+            langCorrect += 1
+            evaluations.append("Correct")
+          elif gold == 'Spn' and guess == 'Spn'and NE==0:
+            langCorrect += 1
+            evaluations.append("Correct")
           else:
-            output.write('\t INCORRECT')
+            evaluations.append("Incorrect")
+        #evaluate NE tags
+        elif gold == "NE":
+            NETotal += 1
+            if NE != 'O':
+                NECorrect +=1
+                evaluations.append("Correct")
+            else:
+                evaluations.append("Incorrect")
+        #don't evaluate punctuation
+        else:
+            evaluations.append("NA")
 
-          total += 1
-
-        output.write('\n')
-
-      return correct / float(total)
+      print>>output, "Language Accuaracy: {}".format(langCorrect / float(langTotal))
+      print>>output, "NE Accuaracy: {}".format(NECorrect / float(NETotal))
+      for word, gold, lang, NE in zip(text, gold_tags, lang_tags, ne_tags, evaluations):
+        print>>output, "{},{},{},{},{}\n".format()
 
 """
 Process arguments

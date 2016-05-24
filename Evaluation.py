@@ -34,7 +34,7 @@ class Evaluator:
         self.spanClassifier = StanfordNERTagger(
             "../stanford-ner-2015-04-20/classifiers/spanish.ancora.distsim.s512.crf.ser.gz",
             "../stanford-ner-2015-04-20/stanford-ner.jar")
-        _tagger()
+        self._tagger()
 
     def _tagger(self):
         # can hmm accept accept list?
@@ -68,7 +68,7 @@ class Evaluator:
     def annotate(self, textfile):
         with io.open(textfile + '_annotated.txt', 'w', encoding='utf-8') as output:
             text = io.open(textfile).read()
-            for line in _tagger(text):
+            for line in self._tagger(text):
                 print>>output, "{},{},{}\n".format(*line)
 
     #  Write evaluation of annotation to file
@@ -77,7 +77,7 @@ class Evaluator:
             lines = io.open(goldStandard, 'r', encoding='utf8').readlines()
             text = [x.split(",")[1] for x in lines]
             gold_tags = [x.split(",")[2] for x in lines]
-            annoated_output = _tagger(text)
+            annoated_output = self._tagger(text)
             lang_tags = [x.split(",")[1] for x in annoated_output]
             ne_tags = [x.split(",")[2] for x in annoated_output]
             langCorrect = langTotal = NECorrect = NETotal = 0

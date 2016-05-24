@@ -40,7 +40,6 @@ def getTransitions(tags, lang1, lang2, ignore):
 
   for (x, y), c in counts.iteritems(): # Compute transition matrix
     transitions[x][y] = c / float(total)
-  print transitions
   return transitions
 
 class Evaluator:
@@ -53,7 +52,6 @@ class Evaluator:
         self.spanClassifier = StanfordNERTagger(
             "../stanford-ner-2015-04-20/classifiers/spanish.ancora.distsim.s512.crf.ser.gz",
             "../stanford-ner-2015-04-20/stanford-ner.jar")
-        self.tagger()
 
     def tagger(self):
         hmmtags = self.hmm.generateTags()
@@ -111,14 +109,15 @@ class Evaluator:
 
     #  Write annotation to output file
     def annotate(self, textfile):
-        with io.open(textfile + '_annotated.txt', 'w', encoding='utf-8') as output:
+        with io.open(textfile + '_annotated.txt', 'w', encoding='utf8') as output:
             text = io.open(textfile).read()
 
             hmmtags = self.hmm.generateTags()
             words = self.hmm.words  # this needs to be case-sensitive
-            taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob", 
-              "Spn-NGram Prob", "HMM Prob")]
-
+            # taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob", 
+            #  "Spn-NGram Prob", "HMM Prob")]
+            output.write(u"Token, Language, Named Entity, Eng-NGram Prob, Spn-NGram Prob, HMM Prob\n")
+            print "Token, Language, Named Entity, Eng-NGram Prob, Spn-NGram Prob, HMM Prob"
             prevLang = "Eng"
             for k, word in enumerate(words):
 
@@ -163,9 +162,9 @@ class Evaluator:
                   engProb = "N/A"
                   spnProb = "N/A"
 
-                taggedTokens.append((word, lang, NE, engProb, spnProb, hmmProb))
+                # taggedTokens.append((word, lang, NE, engProb, spnProb, hmmProb))
+                output.write(u"{},{},{},{},{},{}\n".format(word, lang, NE, engProb, spnProb, hmmProb))
                 print k, word, lang, NE, engProb, spnProb, hmmProb
-                print>>output, "{},{},{},{},{},{}".format(*line)
 
     #  Write evaluation of annotation to file
     def evaluate(self, goldStandard):
@@ -220,8 +219,8 @@ Evaluate
 """
 # Evaluation.py goldStandard testCorpus
 def main(argv):
-    goldStandard = io.open(argv[0], 'r', encoding='utf8').readlines()
-    testCorpus = io.open(argv[1], 'r', encoding='utf8').read().split()
+    goldStandard = io.open(argv[0], 'r', encoding='utf8')
+    testCorpus = io.open(argv[1], 'r', encoding='utf8')
     n = 5
     engData = toWords(io.open('./TrainingCorpora/EngCorpus.txt', 'r', encoding='utf8').read())
     spnData = toWords(io.open('./TrainingCorpora/MexCorpus.txt', 'r', encoding='utf8').read())
@@ -230,11 +229,11 @@ def main(argv):
 
     cslm = CodeSwitchedLanguageModel([enModel, esModel])
 
-    testWords = testCorpus
+    testWords = testCorpus.read().split()
 
     tags = ["Eng", "Spn"]
     # Split on tabs and extract the gold standard tag
-    goldTags = [x.split("\t")[-1].strip() for x in goldStandard]
+    goldTags = [x.split("\t")[-1].strip() for x in goldStandard.readlines()]
     ignore = ['NonStSpn', 'Latin', 'Yidd', 'NamedEnt', 'Ital', 'Frn', 'NonStEng', 
       'Punct', 'Num', 'Mixed', 'SpnNoSpace', 'EngNoSpace', 'Afrk', 'EngNonSt', 'MixedNoSpace', 'Mixed'] 
     # Compute prior based on gold standard
@@ -242,8 +241,8 @@ def main(argv):
     hmm = HiddenMarkovModel(testWords, tags, transitions, cslm)
 
     eval = Evaluator(cslm, hmm)
-    eval.annotate(testCorpus)
-    eval.evaluate(goldStandard)
+    eval.annotate(argv[1])
+    eval.evaluate(argv[0])
 
     #  Use an array of arguments?
     #  Should user pass in number of characters, number of languages, names of

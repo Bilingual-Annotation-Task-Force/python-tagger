@@ -69,7 +69,7 @@ class Evaluator:
         with io.open(textfile + '_annotated.txt', 'w', encoding='utf-8') as output:
             text = io.open(textfile).read()
             for line in self._tagger(text):
-                print>>output, "{},{},{}\n".format(*line)
+                print>>output, "{},{},{}".format(*line)
 
     #  Write evaluation of annotation to file
     def evaluate(self, goldStandard):
@@ -112,7 +112,7 @@ class Evaluator:
             print>>output, "Language Accuaracy: {}".format(langCorrect / float(langTotal))
             print>>output, "NE Accuaracy: {}".format(NECorrect / float(NETotal))
             for word, gold, lang, NE in zip(text, gold_tags, lang_tags, ne_tags, evaluations):
-                print>>output, "{},{},{},{},{}\n".format()
+                print>>output, "{},{},{},{},{}".format()
 
 """
 Process arguments

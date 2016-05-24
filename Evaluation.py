@@ -4,10 +4,12 @@
 import sys
 import re
 import io
-import HiddenMarkovModel
+from HiddenMarkovModel import HiddenMarkovModel 
 import string
 from nltk.tag.stanford import StanfordNERTagger
-
+from collections import Counter
+from CharNGram import *
+from CodeSwitchedLanguageModel import CodeSwitchedLanguageModel
 
 """ Splits text input into words and formats them, splitting by whitespace
 
@@ -23,6 +25,23 @@ def toWords(text):
     tokens = re.findall(token, text)
     return [word.lower() for word in tokens]
 
+# Return a transition matrix built from the gold standard
+# Pass in tags for both languages
+# Pass in ignored tags
+def getTransitions(tags, lang1, lang2, ignore):
+  transitions = {lang1: {}, lang2: {}}
+  counts = Counter(zip(tags, tags[1:]))
+
+  for key in counts.keys(): # Only worry about language tags
+      if key[0] in ignore or key[1] in ignore:
+          del counts[key]
+
+  total = sum(counts.values()) # Get new total for language tags
+
+  for (x, y), c in counts.iteritems(): # Compute transition matrix
+    transitions[x][y] = c / float(total)
+  print transitions
+  return transitions
 
 class Evaluator:
     def __init__(self, cslm, hmm):
@@ -34,20 +53,22 @@ class Evaluator:
         self.spanClassifier = StanfordNERTagger(
             "../stanford-ner-2015-04-20/classifiers/spanish.ancora.distsim.s512.crf.ser.gz",
             "../stanford-ner-2015-04-20/stanford-ner.jar")
-        _tagger()
+        self.tagger()
 
-    def _tagger(self):
-        # can hmm accept accept list?
+    def tagger(self):
         hmmtags = self.hmm.generateTags()
         words = self.hmm.words  # this needs to be case-sensitive
-        taggedTokens = [("Token", "Language", "Named Entity")]
+        taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob", 
+          "Spn-NGram Prob", "HMM Prob")]
 
+        prevLang = "Eng"
         for k, word in enumerate(words):
 
             # check if punctuation else use hmmtag
             lang = 'Punct' if word in string.punctuation else hmmtags[k]
 
             # check if word is NE
+            """
             try:
                 engTag = self.engClassifier.tag(words[k-2:k+2])[2][1]
                 spanTag = self.spanClassifier.tag(words[k-2:k+2])[2][1]
@@ -55,21 +76,96 @@ class Evaluator:
             except IndexError:
                 engTag = self.engClassifier.tag([word])[0][1]
                 spanTag = self.spanClassifier.tag([word])[0][1]
+              """
 
-            # mark as NE either classifier identifies it
+            if lang != "Punct":
+              if lang == "Eng":
+                engTag = self.engClassifier.tag([word])[0][1]
+                spanTag = "O"
+              else:
+                spanTag = self.spanClassifier.tag([word])[0][1]
+                engTag = "O"
+            else:
+              engTag = "O"
+              spanTag = "O"
+
+            # mark as NE if either classifier identifies it
             if engTag != 'O' or spanTag != 'O':
                 NE = "{}/{}".format(engTag, spanTag)
             else:
                 NE = "O"
-            taggedTokens.append((word, lang, NE))
+
+            if lang != "Punct":
+              hmmProb = self.hmm.transitions[prevLang][lang]
+              engProb = self.hmm.cslm.prob("Eng", word)
+              spnProb = self.hmm.cslm.prob("Spn", word)
+              prevLang = lang
+            else:
+              hmmProb = "N/A"
+              engProb = "N/A"
+              spnProb = "N/A"
+
+            taggedTokens.append((word, lang, NE, engProb, spnProb, hmmProb))
+            print k, word, lang, NE, engProb, spnProb, hmmProb
         return taggedTokens
 
     #  Write annotation to output file
     def annotate(self, textfile):
         with io.open(textfile + '_annotated.txt', 'w', encoding='utf-8') as output:
             text = io.open(textfile).read()
-            for line in _tagger(text):
-                print>>output, "{},{},{}\n".format(*line)
+
+            hmmtags = self.hmm.generateTags()
+            words = self.hmm.words  # this needs to be case-sensitive
+            taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob", 
+              "Spn-NGram Prob", "HMM Prob")]
+
+            prevLang = "Eng"
+            for k, word in enumerate(words):
+
+                # check if punctuation else use hmmtag
+                lang = 'Punct' if word in string.punctuation else hmmtags[k]
+
+                # check if word is NE
+                """
+                try:
+                    engTag = self.engClassifier.tag(words[k-2:k+2])[2][1]
+                    spanTag = self.spanClassifier.tag(words[k-2:k+2])[2][1]
+
+                except IndexError:
+                    engTag = self.engClassifier.tag([word])[0][1]
+                    spanTag = self.spanClassifier.tag([word])[0][1]
+                  """
+
+                if lang != "Punct":
+                  if lang == "Eng":
+                    engTag = self.engClassifier.tag([word])[0][1]
+                    spanTag = "O"
+                  else:
+                    spanTag = self.spanClassifier.tag([word])[0][1]
+                    engTag = "O"
+                else:
+                  engTag = "O"
+                  spanTag = "O"
+
+                # mark as NE if either classifier identifies it
+                if engTag != 'O' or spanTag != 'O':
+                    NE = "{}/{}".format(engTag, spanTag)
+                else:
+                    NE = "O"
+
+                if lang != "Punct":
+                  hmmProb = self.hmm.transitions[prevLang][lang]
+                  engProb = self.hmm.cslm.prob("Eng", word)
+                  spnProb = self.hmm.cslm.prob("Spn", word)
+                  prevLang = lang
+                else:
+                  hmmProb = "N/A"
+                  engProb = "N/A"
+                  spnProb = "N/A"
+
+                taggedTokens.append((word, lang, NE, engProb, spnProb, hmmProb))
+                print k, word, lang, NE, engProb, spnProb, hmmProb
+                print>>output, "{},{},{},{},{},{}".format(*line)
 
     #  Write evaluation of annotation to file
     def evaluate(self, goldStandard):
@@ -77,9 +173,9 @@ class Evaluator:
             lines = io.open(goldStandard, 'r', encoding='utf8').readlines()
             text = [x.split(",")[1] for x in lines]
             gold_tags = [x.split(",")[2] for x in lines]
-            annoated_output = _tagger(text)
-            lang_tags = [x.split(",")[1] for x in annoated_output]
-            ne_tags = [x.split(",")[2] for x in annoated_output]
+            annotated_output = tagger(text)
+            lang_tags = [x.split(",")[1] for x in annotated_output]
+            ne_tags = [x.split(",")[2] for x in annotated_output]
             langCorrect = langTotal = NECorrect = NETotal = 0
             evaluations = []
 
@@ -122,32 +218,36 @@ Build Markov model with Expectation Minimization
 Annotate
 Evaluate
 """
-
-
-def main(argv=sys.argv):
-    testCorpus = 'INSERT RELATIVE PATH HERE'  # Extract from arguments?
-    goldStandard = 'INSERT RELATIVE PATH HERE'
+# Evaluation.py goldStandard testCorpus
+def main(argv):
+    goldStandard = io.open(argv[0], 'r', encoding='utf8').readlines()
+    testCorpus = io.open(argv[1], 'r', encoding='utf8').read().split()
     n = 5
-    engData = toWords(io.open('PATH TO ENG DATA', 'r', encoding='utf8').read())
-    spanData = toWords(io.open('PATH TO SPAN DATA', 'r', encoding='utf8').read())
-    enModel = NGramModel('Eng', getConditionalCounts(engData, n), n)
-    esModel = NGramModel('Spn', getConditionalCounts(spanData, n), n)
+    engData = toWords(io.open('./TrainingCorpora/EngCorpus.txt', 'r', encoding='utf8').read())
+    spnData = toWords(io.open('./TrainingCorpora/MexCorpus.txt', 'r', encoding='utf8').read())
+    enModel = CharNGram('Eng', getConditionalCounts(engData, n), n)
+    esModel = CharNGram('Spn', getConditionalCounts(spnData, n), n)
 
     cslm = CodeSwitchedLanguageModel([enModel, esModel])
 
-    testWords = 0
+    testWords = testCorpus
 
-    tags = ['Eng', 'Spn']
-
-    transitions = 0  # Insert Expectation Maximization call here
+    tags = ["Eng", "Spn"]
+    # Split on tabs and extract the gold standard tag
+    goldTags = [x.split("\t")[-1].strip() for x in goldStandard]
+    ignore = ['NonStSpn', 'Latin', 'Yidd', 'NamedEnt', 'Ital', 'Frn', 'NonStEng', 
+      'Punct', 'Num', 'Mixed', 'SpnNoSpace', 'EngNoSpace', 'Afrk', 'EngNonSt', 'MixedNoSpace', 'Mixed'] 
+    # Compute prior based on gold standard
+    transitions = getTransitions(goldTags, tags[0], tags[1], ignore)
     hmm = HiddenMarkovModel(testWords, tags, transitions, cslm)
 
     eval = Evaluator(cslm, hmm)
     eval.annotate(testCorpus)
+    eval.evaluate(goldStandard)
 
     #  Use an array of arguments?
     #  Should user pass in number of characters, number of languages, names of
     #  languages?
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:]) # Skip over script name

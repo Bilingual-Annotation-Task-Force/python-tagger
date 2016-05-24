@@ -10,12 +10,12 @@ class HiddenMarkovModel:
     self.tagSet = tagSet
     self.transitions = transitions
     self.cslm = cslm
-    self.v = [[Node(0, 0) for i in xrange(len(tagSet))] for j in xrange(len(words))]
+    self.v = [[Node(0, 0) for _ in xrange(len(tagSet))] for _ in xrange(len(words))]
 
   # Run Viterbi algorithm and retrace to compute most likely transitions
   def generateTags(self):
     self.viterbi()
-    self.retrace()
+    return self.retrace()
 
   # Return emission probability
   def em(self, ctx, word):

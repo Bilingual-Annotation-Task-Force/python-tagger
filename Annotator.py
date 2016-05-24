@@ -15,24 +15,24 @@ class Annotator:
 
   # Write output to file
   def annotate(self, filename):
-    with io.open(filename + '_annotated.txt', 'w', encoding='utf-8') as output:
-      output.write('Token, Tag\n')
+    with io.open(filename + "_annotated.txt", "w", encoding="utf-8") as output:
+      output.write(u"Token, Tag" + "\n")
       hmmtags = self.hmm.generateTags()
       words = self.hmm.words
 
       for k, word in enumerate(words):
         guess = hmmtags[k]
 
-        if word.match('\\p{P}'):
-          guess = 'Punct'
+        if word.match("\\p{P}"):
+          guess = "Punct"
 
         engTag = self.engClassifier.tag(word)
         spanTag = self.spanClassifier.tag(word)
 
-        if engTag[1] != 'O' and guess == 'Eng':
-          guess = 'EngNamedEnt'
+        if engTag[1] != "O" and guess == "Eng":
+          guess = "EngNamedEnt"
 
-        if spanTag[1] != 'O' and guess == 'Spn':
-          guess = 'SpnNamedEnt'
+        if spanTag[1] != "O" and guess == "Spn":
+          guess = "SpnNamedEnt"
 
-        output.write(word + ',' + guess + '\n')
+        output.write(word + "," + guess + "\n")

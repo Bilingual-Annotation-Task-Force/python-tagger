@@ -148,10 +148,10 @@ class Evaluator:
 
                 # Get context from next five words
                 if lang != "Punct": 
-                  index = k % 5
+                  index = k % 10
                   if index == 0:
-                    engTags = self.engClassifier.tag(words[k:k+5])
-                    spnTags = self.spanClassifier.tag(words[k:k+5]) 
+                    engTags = self.engClassifier.tag(words[k:k+10])
+                    spnTags = self.spanClassifier.tag(words[k:k+10]) 
                   engTag = engTags[index][1]
                   spanTag = spnTags[index][1]
                 else:

@@ -25,6 +25,11 @@ def toWords(text):
     tokens = re.findall(token, text)
     return [word.lower() for word in tokens]
 
+def toWordsCaseSen(text): 
+    # requires utf-8 encoding
+    token = re.compile(ur'[\w]+|[^\s\w]', re.UNICODE)
+    return re.findall(token, text)
+
 # Return a transition matrix built from the gold standard
 # Pass in tags for both languages
 # Pass in ignored tags
@@ -229,7 +234,7 @@ def main(argv):
 
     cslm = CodeSwitchedLanguageModel([enModel, esModel])
 
-    testWords = testCorpus.read().split()
+    testWords = toWordsCaseSen(testCorpus.read())
 
     tags = ["Eng", "Spn"]
     # Split on tabs and extract the gold standard tag

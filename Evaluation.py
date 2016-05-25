@@ -124,6 +124,12 @@ class Evaluator:
             output.write(u"Token, Language, Named Entity, Eng-NGram Prob, Spn-NGram Prob, HMM Prob\n")
             print "Token, Language, Named Entity, Eng-NGram Prob, Spn-NGram Prob, HMM Prob"
             prevLang = "Eng"
+
+            engTags = []
+            spnTags = []
+            engTag = ""
+            spanTag = ""
+
             for k, word in enumerate(words):
 
                 # check if punctuation else use hmmtag
@@ -138,15 +144,16 @@ class Evaluator:
                 except IndexError:
                     engTag = self.engClassifier.tag([word])[0][1]
                     spanTag = self.spanClassifier.tag([word])[0][1]
-                  """
+                """
 
-                if lang != "Punct":
-                  if lang == "Eng":
-                    engTag = self.engClassifier.tag([word])[0][1]
-                    spanTag = "O"
-                  else:
-                    spanTag = self.spanClassifier.tag([word])[0][1]
-                    engTag = "O"
+                # Get context from next five words
+                if lang != "Punct": 
+                  index = k % 5
+                  if index == 0:
+                    engTags = self.engClassifier.tag(words[k:k+5])
+                    spnTags = self.spanClassifier.tag(words[k:k+5]) 
+                  engTag = engTags[index][1]
+                  spanTag = spnTags[index][1]
                 else:
                   engTag = "O"
                   spanTag = "O"

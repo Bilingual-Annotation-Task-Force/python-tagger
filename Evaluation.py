@@ -32,14 +32,9 @@ def toWordsCaseSen(text):
 
 # Return a transition matrix built from the gold standard
 # Pass in tags for both languages
-# Pass in ignored tags
-def getTransitions(tags, lang1, lang2, ignore):
+def getTransitions(tags, lang1, lang2):
   transitions = {lang1: {}, lang2: {}}
   counts = Counter(zip(tags, tags[1:]))
-
-  for key in counts.keys(): # Only worry about language tags
-      if key[0] in ignore or key[1] in ignore:
-          del counts[key]
 
   total = sum(counts.values()) # Get new total for language tags
 
@@ -182,30 +177,33 @@ class Evaluator:
     def evaluate(self, goldStandard):
         with io.open(goldStandard + '_outputwithHMM.txt', 'w', encoding='utf8') as output:
             lines = io.open(goldStandard, 'r', encoding='utf8').readlines()
-            text = [x.split(",")[1] for x in lines]
-            gold_tags = [x.split(",")[2] for x in lines]
-            annotated_output = tagger(text)
-            lang_tags = [x.split(",")[1] for x in annotated_output]
-            ne_tags = [x.split(",")[2] for x in annotated_output]
+            text = [x.split("\t")[0].strip() for x in lines]
+            gold_tags = [x.split("\t")[1].strip() for x in lines]
+            annotated_output = io.open("../codeswitch-annotation/KillerCronicas/Killer_Cronicas_annotated.txt", "r", encoding="utf8").readlines()
+            lang_tags = [x.split(",")[1].strip() for x in annotated_output]
+            ne_tags = [x.split(",")[2].strip() for x in annotated_output]
+            lang_tags = lang_tags[:10116]
+            ne_tags = ne_tags[:10116]
             langCorrect = langTotal = NECorrect = NETotal = 0
             evaluations = []
 
             # compare gold standard and model tags
             for word, gold, lang, NE in zip(text, gold_tags, lang_tags, ne_tags):
+                print word, gold, lang, NE
 
                 # evaluate language tags
                 if gold in ('Eng', 'Spn'):
                     langTotal += 1
-                    if gold == 'Eng' and lang == 'Eng' and NE==0:
+                    if gold == 'Eng' and lang == 'Eng':
                         langCorrect += 1
                         evaluations.append("Correct")
-                    elif gold == 'Spn' and lang == 'Spn'and NE==0:
+                    elif gold == 'Spn' and lang == 'Spn':
                         langCorrect += 1
                         evaluations.append("Correct")
                     else:
                         evaluations.append("Incorrect")
                 # evaluate NE tags
-                elif gold == "NE":
+                elif gold == "NamedEnt":
                     NETotal += 1
                     if NE != 'O':
                         NECorrect += 1
@@ -216,10 +214,10 @@ class Evaluator:
                 else:
                     evaluations.append("NA")
 
-            print>>output, "Language Accuaracy: {}".format(langCorrect / float(langTotal))
-            print>>output, "NE Accuaracy: {}".format(NECorrect / float(NETotal))
-            for word, gold, lang, NE in zip(text, gold_tags, lang_tags, ne_tags, evaluations):
-                print>>output, "{},{},{},{},{}\n".format()
+            output.write(u"Language Accuaracy: {}\n".format(langCorrect / float(langTotal)))
+            output.write(u"NE Accuaracy: {}\n".format(NECorrect / float(NETotal)))
+            for word, gold, lang, NE, evals in zip(text, gold_tags, lang_tags, ne_tags, evaluations):
+                output.write(u"{},{},{},{},{}\n".format(word, gold, lang, NE, evals))
 
 """
 Process arguments
@@ -243,18 +241,25 @@ def main(argv):
 
     testWords = toWordsCaseSen(testCorpus.read())
 
-    tags = ["Eng", "Spn"]
+    tags = [u"Eng", u"Spn"]
     # Split on tabs and extract the gold standard tag
     goldTags = [x.split("\t")[-1].strip() for x in goldStandard.readlines()]
-    ignore = ['NonStSpn', 'Latin', 'Yidd', 'NamedEnt', 'Ital', 'Frn', 'NonStEng', 
-      'Punct', 'Num', 'Mixed', 'SpnNoSpace', 'EngNoSpace', 'Afrk', 'EngNonSt', 'MixedNoSpace', 'Mixed'] 
+    otherSpn = ["NonStSpn", "SpnNoSpace"]
+    otherEng = ["NonStEng", "EngNoSpace", "EngNonSt"]
+    ignore = ['Latin', 'Yidd', 'NamedEnt', 'Ital', 'Frn', 'Punct', 'Num', 'Mixed', 'Afrk', 'MixedNoSpace', 'Mixed'] 
+
+    # Convert all tags to either Eng or Spn and remove others
+    goldTags = ["Eng" if x in otherEng else x for x in goldTags]
+    goldTags = ["Spn" if x in otherSpn else x for x in goldTags]
+    goldTags = [x for x in goldTags if x not in ignore]
+
     # Compute prior based on gold standard
-    transitions = getTransitions(goldTags, tags[0], tags[1], ignore)
+    transitions = getTransitions(goldTags, tags[0], tags[1])
     hmm = HiddenMarkovModel(testWords, tags, transitions, cslm)
 
     eval = Evaluator(cslm, hmm)
     eval.annotate(argv[1])
-    eval.evaluate(argv[0])
+    # eval.evaluate(argv[0])
 
     #  Use an array of arguments?
     #  Should user pass in number of characters, number of languages, names of

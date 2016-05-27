@@ -50,6 +50,21 @@ def getConditionalCounts(sentences, n):
       condCounts[context][lastChar] += 1
   return condCounts
 
+"""
+Revision of getConditionalCounts with Counters
+def getConditionalCounts(sentences, n):
+    ngrams = []
+    for sentence in sentences:
+      ngrams += getNGrams(sentences, n)
+    contexts = [gram[:n - 1] for gram in ngrams]
+    lastChars = [gram[-1] for gram in ngrams]
+    counts = Counter(zip(contexts, lastChars))
+    for (x, y), c in counts.iteritems():
+      condCounts.setdefault(x, {})
+      condCounts[x][y] = c
+    return condCounts
+"""
+
 
 class CharNGram:
   def __init__(self, language, conditionalCounts, n, numLetters=26):

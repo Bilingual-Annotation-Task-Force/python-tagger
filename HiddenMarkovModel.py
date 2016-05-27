@@ -36,19 +36,19 @@ class HiddenMarkovModel:
       for tagIndex, tag in enumerate(self.tagSet):
         # Using map
         # transitionProbs = map(lambda x: Node(self.v[wordIndex - 1][x].prob +
-        #       self.tr(self.tagSet[x], self.tagSet[tagIndex]), x),
+        #       math.log(self.tr(self.tagSet[x], self.tagSet[tagIndex])), x),
         #       xrange(len(self.tagSet)))
 
         # Using list comprehension
         # transitionProbs = [Node(self.v[wordIndex - 1][x].prob +
-        #   tr(self.tagSet[x], self.tagSet[tagIndex]), x) for x in
+        #   math.log(tr(self.tagSet[x], self.tagSet[tagIndex])), x) for x in
         #   xrange(len(self.tagSet))]
 
         # Using loop
         transitionProbs = []
         for x, unusedtag in enumerate(self.tagSet):
           transitionProbs.append(Node(self.v[wordIndex - 1][x].prob +
-            self.tr(self.tagSet[x], self.tagSet[tagIndex]), x))
+            math.log(self.tr(self.tagSet[x], self.tagSet[tagIndex])), x))
 
 
         maxNode = reduce(lambda n1, n2: n1 if n1.prob > n2.prob else n2, transitionProbs)

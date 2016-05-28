@@ -18,17 +18,28 @@ from CodeSwitchedLanguageModel import CodeSwitchedLanguageModel
 """
 # case-insensitive tokenizer for ngram probabilities only
 
-
+"""
 def toWords(text):
     # requires utf-8 encoding
     token = re.compile(ur'[\w]+|[^\s\w]', re.UNICODE)
     tokens = re.findall(token, text)
     return [word.lower() for word in tokens]
+    """
 
+def toWords(text):
+    tokens = re.sub("\t|\n|\r", "", text)
+    return [word.lower() for word in tokens.split()]
+
+"""
 def toWordsCaseSen(text): 
     # requires utf-8 encoding
     token = re.compile(ur'[\w]+|[^\s\w]', re.UNICODE)
     return re.findall(token, text)
+    """
+
+def toWordsCaseSen(text):
+  tokens = re.sub("\t|\n|\r", "", text)
+  return tokens.split()
 
 # Return a transition matrix built from the gold standard
 # Pass in tags for both languages
@@ -143,10 +154,10 @@ class Evaluator:
 
                 # Get context from next five words
                 if lang != "Punct": 
-                  index = k % 10
+                  index = k % 1000
                   if index == 0:
-                    engTags = self.engClassifier.tag(words[k:k+10])
-                    spnTags = self.spanClassifier.tag(words[k:k+10]) 
+                    engTags = self.engClassifier.tag(words[k:k+1000])
+                    spnTags = self.spanClassifier.tag(words[k:k+1000]) 
                   engTag = engTags[index][1]
                   spanTag = spnTags[index][1]
                 else:
@@ -174,19 +185,17 @@ class Evaluator:
                 print k, word, lang, NE, engProb, spnProb, hmmProb
 
     #  Write evaluation of annotation to file
-    def evaluate(self, goldStandard):
+    def evaluate(self, goldStandard, textfile):
         with io.open(goldStandard + '_outputwithHMM.txt', 'w', encoding='utf8') as output:
             lines = io.open(goldStandard, 'r', encoding='utf8').readlines()
-            text = [x.split("\t")[0].strip() for x in lines]
-            gold_tags = [x.split("\t")[1].strip() for x in lines]
-            annotated_output = io.open("../codeswitch-annotation/KillerCronicas/Killer_Cronicas_annotated.txt", "r", encoding="utf8").readlines()
+            text = [x.split("\t")[1].strip() for x in lines]
+            gold_tags = [x.split("\t")[2].strip() for x in lines]
+            annotated_output = io.open(textfile + "_annotated.txt", "r", encoding="utf8").readlines()
             lang_tags = [x.split(",")[1].strip() for x in annotated_output]
             ne_tags = [x.split(",")[2].strip() for x in annotated_output]
-            lang_tags = lang_tags[:10116]
-            ne_tags = ne_tags[:10116]
             langCorrect = langTotal = NECorrect = NETotal = 0
             evaluations = []
-
+            
             # compare gold standard and model tags
             for word, gold, lang, NE in zip(text, gold_tags, lang_tags, ne_tags):
                 print word, gold, lang, NE
@@ -214,8 +223,8 @@ class Evaluator:
                 else:
                     evaluations.append("NA")
 
-            output.write(u"Language Accuaracy: {}\n".format(langCorrect / float(langTotal)))
-            output.write(u"NE Accuaracy: {}\n".format(NECorrect / float(NETotal)))
+            output.write(u"Language Accuracy: {}\n".format(langCorrect / float(langTotal)))
+            output.write(u"NE Accuracy: {}\n".format(NECorrect / float(NETotal)))
             for word, gold, lang, NE, evals in zip(text, gold_tags, lang_tags, ne_tags, evaluations):
                 output.write(u"{},{},{},{},{}\n".format(word, gold, lang, NE, evals))
 
@@ -246,20 +255,19 @@ def main(argv):
     goldTags = [x.split("\t")[-1].strip() for x in goldStandard.readlines()]
     otherSpn = ["NonStSpn", "SpnNoSpace"]
     otherEng = ["NonStEng", "EngNoSpace", "EngNonSt"]
-    ignore = ['Latin', 'Yidd', 'NamedEnt', 'Ital', 'Frn', 'Punct', 'Num', 'Mixed', 'Afrk', 'MixedNoSpace', 'Mixed'] 
 
     # Convert all tags to either Eng or Spn and remove others
     goldTags = ["Eng" if x in otherEng else x for x in goldTags]
     goldTags = ["Spn" if x in otherSpn else x for x in goldTags]
-    goldTags = [x for x in goldTags if x not in ignore]
+    goldTags = [x for x in goldTags if x in ("Eng", "Spn")]
 
     # Compute prior based on gold standard
     transitions = getTransitions(goldTags, tags[0], tags[1])
     hmm = HiddenMarkovModel(testWords, tags, transitions, cslm)
 
     eval = Evaluator(cslm, hmm)
-    eval.annotate(argv[1])
-    # eval.evaluate(argv[0])
+    # eval.annotate(argv[1])
+    eval.evaluate(argv[0], argv[1])
 
     #  Use an array of arguments?
     #  Should user pass in number of characters, number of languages, names of

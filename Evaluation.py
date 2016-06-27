@@ -127,8 +127,8 @@ class Evaluator:
             words = self.hmm.words  # this needs to be case-sensitive
             # taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob", 
             #  "Spn-NGram Prob", "HMM Prob")]
-            output.write(u"Token, Language, Named Entity, Eng-NGram Prob, Spn-NGram Prob, HMM Prob\n")
-            print "Token, Language, Named Entity, Eng-NGram Prob, Spn-NGram Prob, HMM Prob"
+            output.write(u"Token\tLanguage\tNamed Entity\tEng-NGram Prob\tSpn-NGram Prob\tHMM Prob\n")
+            print "Token\tLanguage\tNamed Entity\tEng-NGram Prob\tSpn-NGram Prob\tHMM Prob"
             prevLang = "Eng"
 
             engTags = []
@@ -181,18 +181,18 @@ class Evaluator:
                   spnProb = "N/A"
 
                 # taggedTokens.append((word, lang, NE, engProb, spnProb, hmmProb))
-                output.write(u"{},{},{},{},{},{}\n".format(word, lang, NE, engProb, spnProb, hmmProb))
+                output.write(u"{}\t{}\t{}\t{}\t{}\t{}\n".format(word, lang, NE, engProb, spnProb, hmmProb))
                 print k, word, lang, NE, engProb, spnProb, hmmProb
 
     #  Write evaluation of annotation to file
     def evaluate(self, goldStandard, textfile):
         with io.open(goldStandard + '_outputwithHMM.txt', 'w', encoding='utf8') as output:
             lines = io.open(goldStandard, 'r', encoding='utf8').readlines()
-            text = [x.split("\t")[1].strip() for x in lines]
-            gold_tags = [x.split("\t")[2].strip() for x in lines]
-            annotated_output = io.open(textfile + "_annotated.txt", "r", encoding="utf8").readlines()
-            lang_tags = [x.split(",")[1].strip() for x in annotated_output]
-            ne_tags = [x.split(",")[2].strip() for x in annotated_output]
+            text = [x.split("\t")[0].strip() for x in lines]
+            gold_tags = [x.split("\t")[1].strip() for x in lines]
+            annotated_output = io.open(textfile + "_annotated.txt", "r", encoding="utf8").readlines()[1:]
+            lang_tags = [x.split("\t")[1].strip() for x in annotated_output]
+            ne_tags = [x.split("\t")[2].strip() for x in annotated_output]
             langCorrect = langTotal = NECorrect = NETotal = 0
             evaluations = []
             
@@ -225,8 +225,9 @@ class Evaluator:
 
             output.write(u"Language Accuracy: {}\n".format(langCorrect / float(langTotal)))
             output.write(u"NE Accuracy: {}\n".format(NECorrect / float(NETotal)))
+            output.write(u"Token\tGold Standard\tTagged Language\tNamed Entity\tEvaluation\n")
             for word, gold, lang, NE, evals in zip(text, gold_tags, lang_tags, ne_tags, evaluations):
-                output.write(u"{},{},{},{},{}\n".format(word, gold, lang, NE, evals))
+                output.write(u"{}\t{}\t{}\t{}\t{}\n".format(word, gold, lang, NE, evals))
 
 """
 Process arguments
@@ -248,7 +249,8 @@ def main(argv):
 
     cslm = CodeSwitchedLanguageModel([enModel, esModel])
 
-    testWords = toWordsCaseSen(testCorpus.read())
+    # testWords = toWordsCaseSen(testCorpus.read())
+    testWords = [word.strip() for word in testCorpus.readlines()]
 
     tags = [u"Eng", u"Spn"]
     # Split on tabs and extract the gold standard tag
@@ -266,7 +268,7 @@ def main(argv):
     hmm = HiddenMarkovModel(testWords, tags, transitions, cslm)
 
     eval = Evaluator(cslm, hmm)
-    # eval.annotate(argv[1])
+    eval.annotate(argv[1])
     eval.evaluate(argv[0], argv[1])
 
     #  Use an array of arguments?

@@ -10,6 +10,7 @@ from nltk.tag.stanford import StanfordNERTagger
 from collections import Counter
 from CharNGram import *
 from CodeSwitchedLanguageModel import CodeSwitchedLanguageModel
+import math
 
 """ Splits text input into words and formats them, splitting by whitespace
 
@@ -50,7 +51,7 @@ def getTransitions(tags, lang1, lang2):
   total = sum(counts.values()) # Get new total for language tags
 
   for (x, y), c in counts.iteritems(): # Compute transition matrix
-    transitions[x][y] = c / float(total)
+    transitions[x][y] = math.log(c / float(total))
   return transitions
 
 class Evaluator:
@@ -68,13 +69,14 @@ class Evaluator:
         hmmtags = self.hmm.generateTags()
         words = self.hmm.words  # this needs to be case-sensitive
         taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob", 
-          "Spn-NGram Prob", "HMM Prob")]
+          "Spn-NGram Prob", "HMM Prob", "Total Prob")]
 
         prevLang = "Eng"
         for k, word in enumerate(words):
 
             # check if punctuation else use hmmtag
             lang = 'Punct' if word in string.punctuation else hmmtags[k]
+            # lang = 'Num' if word.isdigit() else hmmtags[k]
 
             # check if word is NE
             """
@@ -108,14 +110,17 @@ class Evaluator:
               hmmProb = self.hmm.transitions[prevLang][lang]
               engProb = self.hmm.cslm.prob("Eng", word)
               spnProb = self.hmm.cslm.prob("Spn", word)
+              totalProb = (hmmProb + engProb) if lang == "Eng" else (hmmProb + spnProb)
               prevLang = lang
             else:
               hmmProb = "N/A"
               engProb = "N/A"
               spnProb = "N/A"
+              totalProb = "N/A"
 
-            taggedTokens.append((word, lang, NE, engProb, spnProb, hmmProb))
-            print k, word, lang, NE, engProb, spnProb, hmmProb
+
+            taggedTokens.append((word, lang, NE, engProb, spnProb, hmmProb, totalProb))
+            print k, word, lang, NE, engProb, spnProb, hmmProb, totalProb
         return taggedTokens
 
     #  Write annotation to output file
@@ -127,8 +132,8 @@ class Evaluator:
             words = self.hmm.words  # this needs to be case-sensitive
             # taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob", 
             #  "Spn-NGram Prob", "HMM Prob")]
-            output.write(u"Token\tLanguage\tNamed Entity\tEng-NGram Prob\tSpn-NGram Prob\tHMM Prob\n")
-            print "Token\tLanguage\tNamed Entity\tEng-NGram Prob\tSpn-NGram Prob\tHMM Prob"
+            output.write(u"Token\tLanguage\tNamed Entity\tEng-NGram Prob\tSpn-NGram Prob\tHMM Prob\tTotal Prob\n")
+            print "Token\tLanguage\tNamed Entity\tEng-NGram Prob\tSpn-NGram Prob\tHMM Prob\tTotal Prob"
             prevLang = "Eng"
 
             engTags = []
@@ -140,6 +145,7 @@ class Evaluator:
 
                 # check if punctuation else use hmmtag
                 lang = 'Punct' if word in string.punctuation else hmmtags[k]
+                # lang = 'Num' if word.isdigit() else hmmtags[k]
 
                 # check if word is NE
                 """
@@ -174,6 +180,7 @@ class Evaluator:
                   hmmProb = self.hmm.transitions[prevLang][lang]
                   engProb = self.hmm.cslm.prob("Eng", word)
                   spnProb = self.hmm.cslm.prob("Spn", word)
+                  totalProb = (hmmProb + engProb) if lang == "Eng" else (hmmProb + spnProb)
                   prevLang = lang
                 else:
                   hmmProb = "N/A"
@@ -181,8 +188,8 @@ class Evaluator:
                   spnProb = "N/A"
 
                 # taggedTokens.append((word, lang, NE, engProb, spnProb, hmmProb))
-                output.write(u"{}\t{}\t{}\t{}\t{}\t{}\n".format(word, lang, NE, engProb, spnProb, hmmProb))
-                print k, word, lang, NE, engProb, spnProb, hmmProb
+                output.write(u"{}\t{}\t{}\t{}\t{}\t{}\n".format(word, lang, NE, engProb, spnProb, hmmProb, totalProb))
+                print k, word, lang, NE, engProb, spnProb, hmmProb, totalProb
 
     #  Write evaluation of annotation to file
     def evaluate(self, goldStandard, textfile):

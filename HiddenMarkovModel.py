@@ -47,8 +47,7 @@ class HiddenMarkovModel:
         # Using loop
         transitionProbs = []
         for x, unusedtag in enumerate(self.tagSet):
-          transitionProbs.append(Node(self.v[wordIndex - 1][x].prob +
-            math.log(self.tr(self.tagSet[x], self.tagSet[tagIndex])), x))
+          transitionProbs.append(Node(self.v[wordIndex - 1][x].prob + self.tr(self.tagSet[x], self.tagSet[tagIndex]), x))
 
 
         maxNode = reduce(lambda n1, n2: n1 if n1.prob > n2.prob else n2, transitionProbs)

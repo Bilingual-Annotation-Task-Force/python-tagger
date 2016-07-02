@@ -76,7 +76,7 @@ class Evaluator:
 
             # check if punctuation else use hmmtag
             lang = 'Punct' if word in string.punctuation else hmmtags[k]
-            # lang = 'Num' if word.isdigit() else hmmtags[k]
+            lang = 'Num' if word.isdigit() else lang
 
             # check if word is NE
             """
@@ -145,7 +145,7 @@ class Evaluator:
 
                 # check if punctuation else use hmmtag
                 lang = 'Punct' if word in string.punctuation else hmmtags[k]
-                # lang = 'Num' if word.isdigit() else hmmtags[k]
+                lang = 'Num' if word.isdigit() else lang
 
                 # check if word is NE
                 """

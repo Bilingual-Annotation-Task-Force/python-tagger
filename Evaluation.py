@@ -171,8 +171,14 @@ class Evaluator:
                   spanTag = "O"
 
                 # mark as NE if either classifier identifies it
+                # First, try always English, then always Spanish, then the language
                 if engTag != 'O' or spanTag != 'O':
                     NE = "{}/{}".format(engTag, spanTag)
+                    # if lang == "Eng":
+                    #     NE = "{}".format(spanTag)
+                    # else:
+                    #     NE = "{}".format(engTag)
+
                 else:
                     NE = "O"
 
@@ -186,9 +192,10 @@ class Evaluator:
                   hmmProb = "N/A"
                   engProb = "N/A"
                   spnProb = "N/A"
+                  totalProb = "N/A"
 
                 # taggedTokens.append((word, lang, NE, engProb, spnProb, hmmProb))
-                output.write(u"{}\t{}\t{}\t{}\t{}\t{}\n".format(word, lang, NE, engProb, spnProb, hmmProb, totalProb))
+                output.write(u"{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(word, lang, NE, engProb, spnProb, hmmProb, totalProb))
                 print k, word, lang, NE, engProb, spnProb, hmmProb, totalProb
 
     #  Write evaluation of annotation to file
@@ -249,15 +256,15 @@ def main(argv):
     goldStandard = io.open(argv[0], 'r', encoding='utf8')
     testCorpus = io.open(argv[1], 'r', encoding='utf8')
     n = 5
-    engData = toWords(io.open('./TrainingCorpora/EngCorpus.txt', 'r', encoding='utf8').read())
-    spnData = toWords(io.open('./TrainingCorpora/MexCorpus.txt', 'r', encoding='utf8').read())
+    engData = toWords(io.open('./TrainingCorpora/Subtlex.US.trim.txt', 'r', encoding='utf8').read())
+    spnData = toWords(io.open('./TrainingCorpora/ActivEsCorpus.txt', 'r', encoding='utf8').read())
     enModel = CharNGram('Eng', getConditionalCounts(engData, n), n)
     esModel = CharNGram('Spn', getConditionalCounts(spnData, n), n)
 
     cslm = CodeSwitchedLanguageModel([enModel, esModel])
 
-    # testWords = toWordsCaseSen(testCorpus.read())
-    testWords = [word.strip() for word in testCorpus.readlines()]
+    testWords = toWordsCaseSen(testCorpus.read())
+    # testWords = [word.strip() for word in testCorpus.readlines()]
 
     tags = [u"Eng", u"Spn"]
     # Split on tabs and extract the gold standard tag
@@ -276,7 +283,7 @@ def main(argv):
 
     eval = Evaluator(cslm, hmm)
     eval.annotate(argv[1])
-    eval.evaluate(argv[0], argv[1])
+    # eval.evaluate(argv[0], argv[1])
 
     #  Use an array of arguments?
     #  Should user pass in number of characters, number of languages, names of

@@ -202,8 +202,8 @@ class Evaluator:
     def evaluate(self, goldStandard, textfile):
         with io.open(goldStandard + '_outputwithHMM.txt', 'w', encoding='utf8') as output:
             lines = io.open(goldStandard, 'r', encoding='utf8').readlines()
-            text = [x.split("\t")[0].strip() for x in lines]
-            gold_tags = [x.split("\t")[1].strip() for x in lines]
+            text = [x.split("\t")[-2].strip() for x in lines]
+            gold_tags = [x.split("\t")[-1].strip() for x in lines]
             annotated_output = io.open(textfile + "_annotated.txt", "r", encoding="utf8").readlines()[1:]
             lang_tags = [x.split("\t")[1].strip() for x in annotated_output]
             ne_tags = [x.split("\t")[2].strip() for x in annotated_output]

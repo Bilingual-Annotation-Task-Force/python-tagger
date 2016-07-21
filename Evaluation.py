@@ -106,7 +106,7 @@ class Evaluator:
             else:
                 NE = "O"
 
-            if lang != "Punct":
+            if lang in ("Eng", "Spn"):
               hmmProb = self.hmm.transitions[prevLang][lang]
               engProb = self.hmm.cslm.prob("Eng", word)
               spnProb = self.hmm.cslm.prob("Spn", word)

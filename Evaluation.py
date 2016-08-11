@@ -4,7 +4,7 @@
 import sys
 import re
 import io
-from HiddenMarkovModel import HiddenMarkovModel 
+from HiddenMarkovModel import HiddenMarkovModel
 import string
 from nltk.tag.stanford import StanfordNERTagger
 from collections import Counter
@@ -32,7 +32,7 @@ def toWords(text):
     return [word.lower() for word in tokens.split()]
 
 """
-def toWordsCaseSen(text): 
+def toWordsCaseSen(text):
     # requires utf-8 encoding
     token = re.compile(ur'[\w]+|[^\s\w]', re.UNICODE)
     return re.findall(token, text)
@@ -68,7 +68,7 @@ class Evaluator:
     def tagger(self):
         hmmtags = self.hmm.generateTags()
         words = self.hmm.words  # this needs to be case-sensitive
-        taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob", 
+        taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob",
           "Spn-NGram Prob", "HMM Prob", "Total Prob")]
 
         prevLang = "Eng"
@@ -130,7 +130,7 @@ class Evaluator:
 
             hmmtags = self.hmm.generateTags()
             words = self.hmm.words  # this needs to be case-sensitive
-            # taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob", 
+            # taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob",
             #  "Spn-NGram Prob", "HMM Prob")]
             output.write(u"Token\tLanguage\tNamed Entity\tEng-NGram Prob\tSpn-NGram Prob\tHMM Prob\tTotal Prob\n")
             print "Token\tLanguage\tNamed Entity\tEng-NGram Prob\tSpn-NGram Prob\tHMM Prob\tTotal Prob"
@@ -159,11 +159,11 @@ class Evaluator:
                 """
 
                 # Get context from next five words
-                if lang != "Punct": 
+                if lang != "Punct":
                   index = k % 1000
                   if index == 0:
                     engTags = self.engClassifier.tag(words[k:k+1000])
-                    spnTags = self.spanClassifier.tag(words[k:k+1000]) 
+                    spnTags = self.spanClassifier.tag(words[k:k+1000])
                   engTag = engTags[index][1]
                   spanTag = spnTags[index][1]
                 else:
@@ -182,7 +182,7 @@ class Evaluator:
                 else:
                     NE = "O"
 
-                if lang != "Punct":
+                if lang in ("Eng", "Spn"):
                   hmmProb = self.hmm.transitions[prevLang][lang]
                   engProb = self.hmm.cslm.prob("Eng", word)
                   spnProb = self.hmm.cslm.prob("Spn", word)
@@ -209,7 +209,7 @@ class Evaluator:
             ne_tags = [x.split("\t")[2].strip() for x in annotated_output]
             langCorrect = langTotal = NECorrect = NETotal = 0
             evaluations = []
-            
+
             # compare gold standard and model tags
             for word, gold, lang, NE in zip(text, gold_tags, lang_tags, ne_tags):
                 print word, gold, lang, NE
@@ -256,8 +256,10 @@ def main(argv):
     goldStandard = io.open(argv[0], 'r', encoding='utf8')
     testCorpus = io.open(argv[1], 'r', encoding='utf8')
     n = 5
-    engData = toWords(io.open('./TrainingCorpora/Subtlex.US.trim.txt', 'r', encoding='utf8').read())
-    spnData = toWords(io.open('./TrainingCorpora/ActivEsCorpus.txt', 'r', encoding='utf8').read())
+    #engData = toWords(io.open('./TrainingCorpora/Subtlex.US.trim.txt', 'r', encoding='utf8').read())
+    engData = toWords(io.open("./TrainingCorpora/EngCorpus-1m.txt",'r', encoding='utf8').read())
+    #spnData = toWords(io.open('./TrainingCorpora/ActivEsCorpus.txt', 'r', encoding='utf8').read())
+    spnData = toWords(io.open('./TrainingCorpora/MexCorpus.txt', 'r', encoding='utf8').read())
     enModel = CharNGram('Eng', getConditionalCounts(engData, n), n)
     esModel = CharNGram('Spn', getConditionalCounts(spnData, n), n)
 
@@ -283,7 +285,7 @@ def main(argv):
 
     eval = Evaluator(cslm, hmm)
     eval.annotate(argv[1])
-    # eval.evaluate(argv[0], argv[1])
+    eval.evaluate(argv[0], argv[1])
 
     #  Use an array of arguments?
     #  Should user pass in number of characters, number of languages, names of

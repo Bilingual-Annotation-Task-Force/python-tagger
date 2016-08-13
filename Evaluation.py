@@ -120,7 +120,7 @@ class Evaluator:
 
 
             taggedTokens.append((word, lang, NE, engProb, spnProb, hmmProb, totalProb))
-            print k, word, lang, NE, engProb, spnProb, hmmProb, totalProb
+            #print k, word, lang, NE, engProb, spnProb, hmmProb, totalProb
         return taggedTokens
 
     #  Write annotation to output file
@@ -133,7 +133,7 @@ class Evaluator:
             # taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob",
             #  "Spn-NGram Prob", "HMM Prob")]
             output.write(u"Token\tLanguage\tNamed Entity\tEng-NGram Prob\tSpn-NGram Prob\tHMM Prob\tTotal Prob\n")
-            print "Token\tLanguage\tNamed Entity\tEng-NGram Prob\tSpn-NGram Prob\tHMM Prob\tTotal Prob"
+            #print "Token\tLanguage\tNamed Entity\tEng-NGram Prob\tSpn-NGram Prob\tHMM Prob\tTotal Prob"
             prevLang = "Eng"
 
             engTags = []
@@ -196,16 +196,19 @@ class Evaluator:
 
                 # taggedTokens.append((word, lang, NE, engProb, spnProb, hmmProb))
                 output.write(u"{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format(word, lang, NE, engProb, spnProb, hmmProb, totalProb))
-                print k, word, lang, NE, engProb, spnProb, hmmProb, totalProb
+                #print k, word, lang, NE, engProb, spnProb, hmmProb, totalProb
 
     #  Write evaluation of annotation to file
     def evaluate(self, goldStandard, textfile):
         with io.open(goldStandard + '_outputwithHMM.txt', 'w', encoding='utf8') as output:
             lines = io.open(goldStandard, 'r', encoding='utf8').readlines()
             text = [x.split("\t")[-2].strip() for x in lines]
+            print "Text:", text[:5]
             gold_tags = [x.split("\t")[-1].strip() for x in lines]
+            print "Gold Tags:", gold_tags[:5]
             #annotated_output = io.open(textfile + "_annotated.txt", "r", encoding="utf8").readlines()[1:]
             annotated_output = tagger(text)
+            print "Annotated Output:", annotated_output[:5]
             lang_tags = [x.split("\t")[1].strip() for x in annotated_output]
             ne_tags = [x.split("\t")[2].strip() for x in annotated_output]
             langCorrect = langTotal = NECorrect = NETotal = 0

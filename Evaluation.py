@@ -204,7 +204,8 @@ class Evaluator:
             lines = io.open(goldStandard, 'r', encoding='utf8').readlines()
             text = [x.split("\t")[-2].strip() for x in lines]
             gold_tags = [x.split("\t")[-1].strip() for x in lines]
-            annotated_output = io.open(textfile + "_annotated.txt", "r", encoding="utf8").readlines()[1:]
+            #annotated_output = io.open(textfile + "_annotated.txt", "r", encoding="utf8").readlines()[1:]
+            annotated_output = tagger(text)
             lang_tags = [x.split("\t")[1].strip() for x in annotated_output]
             ne_tags = [x.split("\t")[2].strip() for x in annotated_output]
             langCorrect = langTotal = NECorrect = NETotal = 0

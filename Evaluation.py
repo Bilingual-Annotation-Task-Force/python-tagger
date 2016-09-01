@@ -128,6 +128,7 @@ class Evaluator:
             output.write(u"Token\tLanguage\tNamed Entity\tEng-NGram Prob\tSpn-NGram Prob\tHMM Prob\tTotal Prob\n")
             for row in tagged_rows:
                 csv_row = '\t'.join([unicode(s) for s in row]) + u"\n"
+                print csv_row
                 output.write(csv_row)
             print "Annotation file written"
 

@@ -1,6 +1,6 @@
 #  Evaluation.py
 #  Using Python 2.7.11
-#trial line August 11, 2016
+# trial line August 11, 2016
 import sys
 import re
 import io
@@ -27,6 +27,7 @@ def toWords(text):
     return [word.lower() for word in tokens]
     """
 
+
 def toWords(text):
     tokens = re.sub("\t|\n|\r", "", text)
     return [word.lower() for word in tokens.split()]
@@ -38,21 +39,23 @@ def toWordsCaseSen(text):
     return re.findall(token, text)
     """
 
+
 def toWordsCaseSen(text):
-  tokens = re.sub("\t|\n|\r", "", text)
-  return tokens.split()
+    tokens = re.sub("\t|\n|\r", "", text)
+    return tokens.split()
 
 # Return a transition matrix built from the gold standard
 # Pass in tags for both languages
+
+
 def getTransitions(tags, lang1, lang2):
-  transitions = {lang1: {}, lang2: {}}
-  counts = Counter(zip(tags, tags[1:]))
+    transitions = {lang1: {}, lang2: {}}
+    counts = Counter(zip(tags, tags[1:]))
+    total = sum(counts.values())  # Get new total for language tags
+    for (x, y), c in counts.iteritems():  # Compute transition matrix
+        transitions[x][y] = math.log(c / float(total))
+    return transitions
 
-  total = sum(counts.values()) # Get new total for language tags
-
-  for (x, y), c in counts.iteritems(): # Compute transition matrix
-    transitions[x][y] = math.log(c / float(total))
-  return transitions
 
 class Evaluator:
     def __init__(self, cslm, hmm):
@@ -90,15 +93,15 @@ class Evaluator:
               """
 
             if lang != "Punct":
-              if lang == "Eng":
-                engTag = self.engClassifier.tag([word])[0][1]
-                spanTag = "O"
-              else:
-                spanTag = self.spanClassifier.tag([word])[0][1]
-                engTag = "O"
+                if lang == "Eng":
+                    engTag = self.engClassifier.tag([word])[0][1]
+                    spanTag = "O"
+                else:
+                    spanTag = self.spanClassifier.tag([word])[0][1]
+                    engTag = "O"
             else:
-              engTag = "O"
-              spanTag = "O"
+                engTag = "O"
+                spanTag = "O"
 
             # mark as NE if either classifier identifies it
             if engTag != 'O' or spanTag != 'O':
@@ -107,27 +110,24 @@ class Evaluator:
                 NE = "O"
 
             if lang in ("Eng", "Spn"):
-              hmmProb = self.hmm.transitions[prevLang][lang]
-              engProb = self.hmm.cslm.prob("Eng", word)
-              spnProb = self.hmm.cslm.prob("Spn", word)
-              totalProb = (hmmProb + engProb) if lang == "Eng" else (hmmProb + spnProb)
-              prevLang = lang
+                hmmProb = self.hmm.transitions[prevLang][lang]
+                engProb = self.hmm.cslm.prob("Eng", word)
+                spnProb = self.hmm.cslm.prob("Spn", word)
+                totalProb = (hmmProb + engProb) if lang == "Eng" else (hmmProb + spnProb)
+                prevLang = lang
             else:
-              hmmProb = "N/A"
-              engProb = "N/A"
-              spnProb = "N/A"
-              totalProb = "N/A"
-
-
+                hmmProb = "N/A"
+                engProb = "N/A"
+                spnProb = "N/A"
+                totalProb = "N/A"
             taggedTokens.append((word, lang, NE, engProb, spnProb, hmmProb, totalProb))
-            #print k, word, lang, NE, engProb, spnProb, hmmProb, totalProb
+            # print k, word, lang, NE, engProb, spnProb, hmmProb, totalProb
         return taggedTokens
 
     #  Write annotation to output file
     def annotate(self, textfile):
         with io.open(textfile + '_annotated.txt', 'w', encoding='utf8') as output:
             text = io.open(textfile).read()
-
             hmmtags = self.hmm.generateTags()
             words = self.hmm.words  # this needs to be case-sensitive
             # taggedTokens = [("Token", "Language", "Named Entity", "Eng-NGram Prob",

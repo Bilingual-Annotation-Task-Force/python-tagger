@@ -78,10 +78,11 @@ class Evaluator:
         spnTags = []
         engTag = ""
         spanTag = ""
+        token = re.compile(ur'[^\w\s]', re.UNICODE)
         print "Tagging {} words".format(len(words))
         for k, word in enumerate(words):
             # check if punctuation else use hmmtag
-            lang = 'Punct' if word in string.punctuation else hmmtags[k]
+            lang = 'Punct' if re.match(token, word) and not word[-1].isalpha() else hmmtags[k]
             lang = 'Num' if word.isdigit() else lang
             # check if word is NE
             if lang != "Punct":

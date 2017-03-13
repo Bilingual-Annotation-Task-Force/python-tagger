@@ -90,3 +90,6 @@ celerybeat-schedule
 
 # Spyder project settings
 .spyderproject
+
+#Intellij
+.idea/

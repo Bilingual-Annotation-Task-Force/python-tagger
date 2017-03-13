@@ -1,6 +1,5 @@
-#  Evaluation.py
-#  Using Python 2.7.11
-#trial line August 11, 2016
+#  eval.py
+#  Using Python 3.5
 import sys
 import io
 import string
@@ -18,7 +17,7 @@ from cngram import *
 from cs_model import CodeSModel
 
 
-def split_words(text, keep_case = True):
+def split_words(text, keep_case=True):
     """Splits a string of white-space separated words into tokens of words
 
     Args:
@@ -31,7 +30,7 @@ def split_words(text, keep_case = True):
     """
     if not keep_case:
         text = text.lower()
-    token = re.compile(ur'[\w]+|[^\s\w]', re.UNICODE)
+    token = re.compile('[\w]+|[^\s\w]', re.UNICODE)
     return re.findall(token, text)
 
 
@@ -68,8 +67,8 @@ def get_transi_matrix(tags, lang1, lang2):
     """
     transi_matrix = {lang1: {}, lang2: {}}
     # Count number of occurences for each distinct transition
-    counts = Counter(zip(tags, tags[1:])) # Generating pairs
-    total = sum(counts.values()) # Counting
+    counts = Counter(zip(tags, tags[1:]))  # Generating pairs
+    total = sum(counts.values())  # Counting
     # Compute the matrix
     for (x, y), c in counts.iteritems():
         # Taking the log to magnify the closer differences
@@ -104,7 +103,7 @@ class Evaluator:
 
     def __init__(self, cs_model, transi_matrix, tags):
         self.cs_model = cs_model
-        self.transI_matrix = transi_matrix
+        self.transi_matrix = transi_matrix
         self.tags = tags
         self.lang1_tagger = StanfordNERTagger(
             "../stanford-ner-2015-04-20/classifiers/english.all.3class.distsim.crf.ser.gz",
@@ -139,7 +138,7 @@ class Evaluator:
         """
         # Why is this generated here?
         hmm = HiddenMarkovModel(word_list, self.tags, self.transi_matrix,
-            self.cs_model)
+                                self.cs_model)
         hmmtags = hmm.gen_tags()
         # Is this necessary? Does the hmm do anything to the text?
         words = hmm.words
@@ -150,7 +149,7 @@ class Evaluator:
         lang2_tags = []
         lang1_tag = "Eng"
         lang2_tag = "Spn"
-        token = re.compile(ur'[^\w\s]', re.UNICODE)
+        token = re.compile('[^\w\s]', re.UNICODE)
         # Tag each word based on the statistical analysis
         print("Tagging {} words".format(len(words)))
         for k, word in enumerate(words):
@@ -166,13 +165,13 @@ class Evaluator:
                 # Processing 1000 words at a time
                 index = k % 1000
                 if index == 0:
-                    lang1_tags = self.lang1_tagger.tag(words[k:k+1000])
-                    lang2_tags = self.lang2_tagger.tag(words[k:k+1000])
+                    lang1_tags = self.lang1_tagger.tag(words[k:k + 1000])
+                    lang2_tags = self.lang2_tagger.tag(words[k:k + 1000])
                 lang1_tag = lang1_tags[index][1]
                 lang2_tag = lang2_tags[index][1]
             else:
-              lang1_tag = "O"
-              lang2_tag = "O"
+                lang1_tag = "O"
+                lang2_tag = "O"
             # mark as NE if either NLTK tagger identifies it
             if lang1_tag != 'O' or lang2_tag != 'O':
                 NE = "{}/{}".format(lang1_tag, lang2_tag)
@@ -180,7 +179,7 @@ class Evaluator:
                 NE = "O"
             # record probabilities
             if lang in (lang1_tag, lang2_tag):
-                hmm_prob = round(hmm.transitions[prev_lang][lang], 2)
+                hmm_prob = round(hmm.transi_matrix[prev_lang][lang], 2)
                 lang1_prob = round(self.cs_model.prob(lang1_tag, word), 2)
                 lang2_prob = round(self.cs_model.prob(lang2_tag, word), 2)
                 if lang == lang1_tag:
@@ -194,11 +193,11 @@ class Evaluator:
                 lang2_prob = "N/A"
                 total_prob = "N/A"
 
-            taggedTokens.append((word, lang, NE,
-                str(lang1_prob), str(lang2_prob), str(hmm_prob),
-                str(total_prob)))
+            tagged_tokens.append((word, lang, NE,
+                                  str(lang1_prob), str(lang2_prob), str(hmm_prob),
+                                  str(total_prob)))
 
-        return taggedTokens
+        return tagged_tokens
 
     def annotate(self, corpus):
         """Annotates a corpus by adding tags for the words of the corpus.
@@ -215,15 +214,15 @@ class Evaluator:
         """
         print("Annotation Mode")
         with io.open(corpus.strip(".txt") + '_annotated.txt',
-                'w', encoding='utf8') as output:
+                     'w', encoding='utf8') as output:
             text = io.open(corpus).read()
             testWords = split_words(text)
             tagged_rows = self.tag_list(testWords)
-            output.write(u"Token\tLanguage\tNamed Entity"
-                u"\tEng-NGram Prob\tSpn-NGram Prob"
-                u"\tHMM Prob\tTotal Prob\n")
+            output.write("Token\tLanguage\tNamed Entity"
+                         "\tEng-NGram Prob\tSpn-NGram Prob"
+                         "\tHMM Prob\tTotal Prob\n")
             for row in tagged_rows:
-                csv_row = '\t'.join([unicode(s) for s in row]) + u"\n"
+                csv_row = '\t'.join([s for s in row]) + "\n"
                 print(csv_row)
                 output.write(csv_row)
             print("Annotation file written")
@@ -240,8 +239,8 @@ class Evaluator:
         # Output to file
         print("Evaluation Mode")
         with io.open(gold_standard + '_outputwithHMM.txt',
-                'w', encoding='utf8') as output:
-            #create list of text and tags
+                     'w', encoding='utf8') as output:
+            # create list of text and tags
             lines = io.open(gold_standard, 'r', encoding='utf8').readlines()
             text, gold_tags = [], []
             # Store words/token into text, and tags into gold_tags
@@ -251,8 +250,8 @@ class Evaluator:
                 gold_tags.append(columns[-1].strip())
             # Tag the text based on the provided models
             annotated_output = self.tag_list(text)
-            tokens, lang_tags, NE_tags, lang1_probs, lang2_probs,\
-                    hmm_probs, total_probs = map(list, zip(*annotated_output))
+            tokens, lang_tags, NE_tags, lang1_probs, lang2_probs, \
+            hmm_probs, total_probs = map(list, zip(*annotated_output))
             # Reset counters to 0, prepare for checking with the gold_standard
             langCorrect = langTotal = NECorrect = NETotal = 0
             evals = []
@@ -278,20 +277,20 @@ class Evaluator:
                 else:
                     evals.append("NA")
             # Write the final results to file
-            output.write(u"Language Accuracy: {}\n".format(
+            output.write("Language Accuracy: {}\n".format(
                 langCorrect / float(langTotal)))
-            output.write(u"NE Accuracy: {}\n".format(
+            output.write("NE Accuracy: {}\n".format(
                 NECorrect / float(NETotal)))
-            output.write(u"Token\tGold Standard\tTagged Language"
-                "\tNamed Entity\tEvaluation\n")
+            output.write("Token\tGold Standard\tTagged Language"
+                         "\tNamed Entity\tEvaluation\n")
             for all_columns in zip(text, gold_tags, lang_tags, NE_tags, evals):
-                output.write(u"\t".join(all_columns) + u"\n")
+                output.write("\t".join(all_columns) + "\n")
             print("Evaluation file written")
 
 
 # This method needs to be rewritten
 # eval.py gold_standard test_corpus
-def main(argv):
+def examine(argv):
     """Main prep work and evaluation. Process:
     1. Process arguments
     2. Get corpora
@@ -309,17 +308,17 @@ def main(argv):
     # lang1_data = toWords(io.open('./TrainingCorpora/Subtlex.US.trim.txt',
     #   'r', encoding='utf8').read())
     lang1_data = split_words(io.open("./TrainingCorpora/EngCorpus-1m.txt",
-        'r', encoding='utf8').read())
+                                     'r', encoding='utf8').read())
     # lang2_data = toWords(io.open('./TrainingCorpora/ActivEsCorpus.txt',
     #   'r', encoding='utf8').read())
     lang2_data = split_words(io.open('./TrainingCorpora/MexCorpus.txt',
-        'r', encoding='utf8').read())
+                                     'r', encoding='utf8').read())
     lang1_model = CNGram('Eng', get_cond_cnts(lang1_data, n), n)
     lang2_model = CNGram('Spn', get_cond_cnts(lang2_data, n), n)
 
     cs_model = CodeSModel([lang1_model, lang2_model])
 
-    tags = [u"Eng", u"Spn"]
+    tags = ["Eng", "Spn"]
 
     # Split on tabs and extract the gold standard tag
     gold_tags = [x.split("\t")[-1].strip() for x in gold_standard.readlines()]
@@ -342,9 +341,10 @@ def main(argv):
     #  Should user pass in number of characters, number of languages, names of
     #  languages?
 
+
 if __name__ == "__main__":
     """Sends off the arguments to the method "main" if launched from the
         command line. Sends everything but the first arguments, as the
         first is the name of the script.
     """
-    main(sys.argv[1:]) # Skip over script name
+    examine(sys.argv[1:])  # Skip over script name

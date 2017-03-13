@@ -1,5 +1,5 @@
 # ngram.py
-# Using Python 2.7.11
+# Using Python 3.5
 
 import itertools
 import math
@@ -10,7 +10,7 @@ class CNGram:
 
     Args:
         lang (str): The language of the n-gram
-        cond_cnt ():
+        cond_cnts ():
         num_letters (int): Number of letters in the original text.
         n (int, optional): The length of the n-gram. The default is 5.
     Properties:
@@ -64,7 +64,7 @@ def get_ngrams(text, n):
         list<str>: n-gram strings
     """
     text = (" " * (n - 1)) + text + " "
-    return [text[i:i+n] for i in xrange(len(text) - n + 1)]
+    return [text[i:i+n] for i in range(len(text) - n + 1)]
 
 
 def get_cond_cnts(sentences, n):

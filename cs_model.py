@@ -1,7 +1,8 @@
 # CodeSwitchedLanguageModel.py
-# Using Python 2.7.11
+# Using Python 3.5
 
 import cngram
+
 
 class CodeSModel:
     """The code switched language model.
@@ -12,6 +13,7 @@ class CodeSModel:
     Properties:
         models (CNGram):
     """
+
     def __init__(self, models):
         self.models = models
 
@@ -28,7 +30,7 @@ class CodeSModel:
         #   loop so it is iterated through once instead of twice
         max_prob = max(model.word_prob(word.lower()) for model in self.models)
         guess = [model for model in self.models
-            if model.word_prob(word.lower()) == max_prob]
+                 if model.word_prob(word.lower()) == max_prob]
         # This should find the most common language... though I do agree that
         #   it would be incredibly rare for two to have the same probability
         return guess[0].lang
@@ -45,4 +47,4 @@ class CodeSModel:
         """
         # Not sure how this works... mostly due to simply picking the first element
         return [model for model in self.models
-            if model.lang == lang][0].word_prob(word.lower())
+                if model.lang == lang][0].word_prob(word.lower())

@@ -1,7 +1,7 @@
 # ngram.py
 # Using Python 3.5
 
-import itertools
+import itertools # Unused
 import math
 
 
@@ -20,7 +20,7 @@ class CNGram:
         n (int, optional): The length of the n-gram. The default is 5.
     """
 
-    def __init__(self, lang, cond_cnts, num_letters, n = 5):
+    def __init__(self, lang, cond_cnts, num_letters, n=5):
         self.lang = lang
         self.cond_cnts = cond_cnts
         self.num_letters = num_letters
@@ -29,8 +29,8 @@ class CNGram:
 
     def _normalize_counts(self):
         """Normalizes the counts within the n-gram's cond_cnts"""
-        for ctx, cnts in self.cond_cnts.iteritems():
-            for lastc, cnt in cnts.iteritems():
+        for ctx, cnts in self.cond_cnts.items():
+            for lastc, cnt in cnts.items():
                 self.cond_cnts[ctx][lastc] = (cnt + 1)/float(self.num_letters)
 
     def ngram_prob(self, ctx, c):

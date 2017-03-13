@@ -16,7 +16,7 @@ class HiddenMarkovModel:
         words (list<str>): list of words
         tag_set (list<str>): list of tags
         transi_matrix (dict<str -> dict<str -> float>>): transition matrix.
-            See the method in eval.py. As of now, is a 2x2 matrix.
+            See the method in evaluator.py. As of now, is a 2x2 matrix.
         cs_model (CodeSModel): The code switched language model of the
             corpus.
 
@@ -24,7 +24,7 @@ class HiddenMarkovModel:
         words (list<str>): list of words
         tag_set (list<str>): list of tags
         transi_matrix (dict<str -> dict<str -> float>>): transition matrix.
-            See the method in eval.py. As of now, is a 2x2 matrix.
+            See the method in evaluator.py. As of now, is a 2x2 matrix.
         cs_model (CodeSModel): The code switched language model of the
             corpus.
         v (list<list<HMMNode>>): A series of nodes representiing the provided words.
@@ -39,8 +39,8 @@ class HiddenMarkovModel:
         self.tag_set = tag_set
         self.transi_matrix = transi_matrix
         self.cs_model = cs_model
-        self.v = [[HMMNode(0, 0) for __ in range(len(tag_set))]
-                  for __ in range(len(words))]
+        self.v = [[HMMNode(0, 0) for _ in range(len(tag_set))]
+                  for _ in range(len(words))]
 
     def gen_tags(self):
         """Generate the tags of the language using the viterbi alogrithm to
@@ -52,7 +52,7 @@ class HiddenMarkovModel:
         self.viterbi()
         return self.retrace()
 
-    def em(self, lang, word):
+    def em(self, ctx_lang, word):
         """Find the emission property, or how likely it a certain observable
             state has been generated from a state.
 
@@ -60,16 +60,16 @@ class HiddenMarkovModel:
             context language.
 
         Args:
-            lang (str): Which language to match the word to
+            ctx_lang (str): Which language to match the word to
             word (str): Which word to check the likelihood of belonging to a
                 language
 
         Return:
             The probability for a word to exist, given a context
         """
-        return self.cs_model.prob(ctx, word)
+        return self.cs_model.prob(ctx_lang, word)
 
-    def tr(self, ctx, tag):
+    def tr(self, ctx_tag, new_tag):
         """Determines the transmission probability of a node.
 
         The transmission probability is the likelihood of a single state
@@ -77,14 +77,14 @@ class HiddenMarkovModel:
             same or different from the original state.
 
         Args:
-            ctx (str): the source state
-            tag (str): the target state
+            ctx_tag (str): the source state
+            new_tag (str): the target state
 
         Return:
             float: probability of transitioning from the given state to the
                 new state.
         """
-        return self.transi_matrix[ctx][tag]
+        return self.transi_matrix[ctx_tag][new_tag]
 
     def viterbi(self):
         """Runs the viterbi algorithm on the setup of the hidden Markov model.
@@ -132,17 +132,17 @@ class HiddenMarkovModel:
         # Find most probable final tag and add it
         last = reduce(
             lambda x, y:
-            x if self.v[len(self.words) - 1][x].prob >
-                 self.v[len(self.words) - 1][y].prob
-            else y,
+            x if self.v[len(self.words) - 1][x].prob > self.v[len(self.words) - 1][y].prob else y,
             range(len(self.tag_set))
         )
 
-        # Follow backpointers to most probable previous tags
-        prev = self.v[-1][last]
+        # Follow back pointers to most probable previous tags
+        index = 0
+        prev = last
         while prev != -1:
             tags.append(self.tag_set[prev])
-            prev = self.v[k][prev].p_tag
+            index -= 1
+            prev = self.v[index][prev].p_tag
         # Return the reversed traversal
         return tags.reverse()
 

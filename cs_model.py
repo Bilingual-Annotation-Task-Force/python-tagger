@@ -1,7 +1,7 @@
 # CodeSwitchedLanguageModel.py
 # Using Python 3.5
 
-import cngram
+import cngram # Unused
 
 
 class CodeSModel:

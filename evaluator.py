@@ -2,13 +2,13 @@
 #  Using Python 3.5
 import sys
 import io
-import string
+import string # Unused
 import re
 
 from collections import Counter
 
-import csv
-import math
+import csv # Unused
+import math # Unused
 
 from nltk.tag.stanford import StanfordNERTagger
 
@@ -66,11 +66,11 @@ def get_transi_matrix(tags, lang1, lang2):
             matrix.
     """
     transi_matrix = {lang1: {}, lang2: {}}
-    # Count number of occurences for each distinct transition
+    # Count number of occurrences for each distinct transition
     counts = Counter(zip(tags, tags[1:]))  # Generating pairs
     total = sum(counts.values())  # Counting
     # Compute the matrix
-    for (x, y), c in counts.iteritems():
+    for (x, y), c in counts.items():
         # Taking the log to magnify the closer differences
         transi_matrix[x][y] = math.log(c / float(total))
     return transi_matrix
@@ -174,9 +174,9 @@ class Evaluator:
                 lang2_tag = "O"
             # mark as NE if either NLTK tagger identifies it
             if lang1_tag != 'O' or lang2_tag != 'O':
-                NE = "{}/{}".format(lang1_tag, lang2_tag)
+                ne = "{}/{}".format(lang1_tag, lang2_tag)
             else:
-                NE = "O"
+                ne = "O"
             # record probabilities
             if lang in (lang1_tag, lang2_tag):
                 hmm_prob = round(hmm.transi_matrix[prev_lang][lang], 2)
@@ -193,7 +193,7 @@ class Evaluator:
                 lang2_prob = "N/A"
                 total_prob = "N/A"
 
-            tagged_tokens.append((word, lang, NE,
+            tagged_tokens.append((word, lang, ne,
                                   str(lang1_prob), str(lang2_prob), str(hmm_prob),
                                   str(total_prob)))
 
@@ -216,8 +216,8 @@ class Evaluator:
         with io.open(corpus.strip(".txt") + '_annotated.txt',
                      'w', encoding='utf8') as output:
             text = io.open(corpus).read()
-            testWords = split_words(text)
-            tagged_rows = self.tag_list(testWords)
+            test_words = split_words(text)
+            tagged_rows = self.tag_list(test_words)
             output.write("Token\tLanguage\tNamed Entity"
                          "\tEng-NGram Prob\tSpn-NGram Prob"
                          "\tHMM Prob\tTotal Prob\n")
@@ -250,26 +250,26 @@ class Evaluator:
                 gold_tags.append(columns[-1].strip())
             # Tag the text based on the provided models
             annotated_output = self.tag_list(text)
-            tokens, lang_tags, NE_tags, lang1_probs, lang2_probs, \
-            hmm_probs, total_probs = map(list, zip(*annotated_output))
+            tokens, lang_tags, ne_tags, lang1_probs, lang2_probs, hmm_probs, total_probs \
+                = map(list, zip(*annotated_output))
             # Reset counters to 0, prepare for checking with the gold_standard
-            langCorrect = langTotal = NECorrect = NETotal = 0
+            lang_correct = lang_total = ne_correct = ne_total = 0
             evals = []
             # Compare gold standard and model tags
-            for lang, NE, gold in zip(lang_tags, NE_tags, gold_tags):
+            for lang, NE, gold in zip(lang_tags, ne_tags, gold_tags):
                 # Evaluate language tags
                 if gold in ('Eng', 'Spn'):
-                    langTotal += 1
+                    lang_total += 1
                     if gold == lang:
-                        langCorrect += 1
+                        lang_correct += 1
                         evals.append("Correct")
                     else:
                         evals.append("Incorrect")
                 # Evaluate NE tags
                 elif gold == "NamedEnt":
-                    NETotal += 1
+                    ne_total += 1
                     if NE != 'O':
-                        NECorrect += 1
+                        ne_correct += 1
                         evals.append("Correct")
                     else:
                         evals.append("Incorrect")
@@ -278,18 +278,18 @@ class Evaluator:
                     evals.append("NA")
             # Write the final results to file
             output.write("Language Accuracy: {}\n".format(
-                langCorrect / float(langTotal)))
+                lang_correct / float(lang_total)))
             output.write("NE Accuracy: {}\n".format(
-                NECorrect / float(NETotal)))
+                ne_correct / float(ne_total)))
             output.write("Token\tGold Standard\tTagged Language"
                          "\tNamed Entity\tEvaluation\n")
-            for all_columns in zip(text, gold_tags, lang_tags, NE_tags, evals):
+            for all_columns in zip(text, gold_tags, lang_tags, ne_tags, evals):
                 output.write("\t".join(all_columns) + "\n")
             print("Evaluation file written")
 
 
 # This method needs to be rewritten
-# eval.py gold_standard test_corpus
+# evaluator.py gold_standard test_corpus
 def examine(argv):
     """Main prep work and evaluation. Process:
     1. Process arguments
@@ -333,18 +333,15 @@ def examine(argv):
     # Compute prior based on gold standard
     transitions = get_transi_matrix(gold_tags, tags[0], tags[1])
 
-    eval = Evaluator(cs_model, transitions, tags)
-    eval.annotate(argv[1])
-    eval.evaluate(argv[0])
+    evaluator = Evaluator(cs_model, transitions, tags)
+    evaluator.annotate(argv[1])
+    evaluator.evaluate(argv[0])
 
     #  Use an array of arguments?
     #  Should user pass in number of characters, number of languages, names of
     #  languages?
 
 
+# Launch the evaluation process
 if __name__ == "__main__":
-    """Sends off the arguments to the method "main" if launched from the
-        command line. Sends everything but the first arguments, as the
-        first is the name of the script.
-    """
     examine(sys.argv[1:])  # Skip over script name

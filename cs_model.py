@@ -1,7 +1,9 @@
-# CodeSwitchedLanguageModel.py
-# Using Python 2.7.11
+#  cs_model.py
+#  Using Python 3.4.3
 
 import cngram
+from operator import itemgetter
+
 
 class CodeSModel:
     """The code switched language model.
@@ -13,7 +15,7 @@ class CodeSModel:
         models (CNGram):
     """
     def __init__(self, models):
-        self.models = models
+        self.models = {model.lang: model for model in models}
 
     def guess(self, word):
         """Fetches the language a word is most likely to be in,
@@ -24,14 +26,10 @@ class CodeSModel:
         Return
             str: language the word is most likely to be in
         """
-        # Efficiency consideration: Combine the following two steps into one
-        #   loop so it is iterated through once instead of twice
-        max_prob = max(model.word_prob(word.lower()) for model in self.models)
-        guess = [model for model in self.models
-            if model.word_prob(word.lower()) == max_prob]
-        # This should find the most common language... though I do agree that
-        #   it would be incredibly rare for two to have the same probability
-        return guess[0].lang
+        lower_word = word.lower()
+        model_probs = ((lang, model.word_prob(lower_word)) for lang, model in
+                       self.models.items())
+        return max(model_probs, key=itemgetter(1))[0]
 
     def prob(self, lang, word):
         """Fetches the probability of a word to be in a language.
@@ -43,6 +41,4 @@ class CodeSModel:
         Return:
             float: The probability of the word to be in a language
         """
-        # Not sure how this works... mostly due to simply picking the first element
-        return [model for model in self.models
-            if model.lang == lang][0].word_prob(word.lower())
+        return self.models[lang].word_prob(word.lower())

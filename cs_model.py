@@ -14,6 +14,7 @@ class CodeSModel:
     Properties:
         models (CNGram):
     """
+
     def __init__(self, models):
         self.models = {model.lang: model for model in models}
 

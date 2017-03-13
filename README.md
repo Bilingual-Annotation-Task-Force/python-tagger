@@ -1,6 +1,14 @@
-To run script from terminal
-  Evaluation.py goldStandard testCorpus
-  
-goldStandard must be in the format Index/tToken/tTag
+# Code Switching Tagger
 
-testCorpus must be raw text in utf-8
+## General Description
+
+
+
+## Running Requirements
+
+To run script from terminal, use a command of this type
+  eval.py goldStandard testCorpus
+  
+The gold standard file must be in the format Index\tToken\tTag
+
+The test corpus must be raw text in utf-8

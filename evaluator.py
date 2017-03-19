@@ -7,6 +7,7 @@ import re
 import csv
 import sys
 import math
+import copy
 import argparse
 from cngram import CNGram
 from cs_model import CodeSModel
@@ -56,6 +57,8 @@ def get_transi_matrix(gold_tags, langs):
                 |   ->   |   ->   |
                 |  tag1  |  tag2  |
                 +-----------------+
+                
+    Note that this is for two languages.
 
     However, it takes the log of the raw, overall probability of each switch to
         magnify small differences.
@@ -63,8 +66,7 @@ def get_transi_matrix(gold_tags, langs):
     Args:
         gold_tags (list<str>): A list of language tags, should only contain two main
             languages.
-        lang1 (str): Tag of the first language.
-        lang2 (str): Tag of the second language.
+        langs (list<str>): language.
 
     Returns:
         dict<str -> dict<str -> list>>: A dictionary representing the
@@ -97,6 +99,8 @@ class Evaluator:
             to another. See the function get_transi_matrix for more info about
             the specific format.
         tags (list<str>): List of tags.
+        local_config (dict<str>, optional): Optional local changes to the parameters.
+            Defaults to the global configuration.
 
     Properties:
         cs_model (CodeSModel): A code switched language model. Check the file
@@ -104,19 +108,23 @@ class Evaluator:
         transi_matrix (list<list<float>>): A matrix of percentages from one tag
             to another. See the function get_transi_matrix for more info about
             the specific format.
+        local_config (dict<str>): Dictionary of configuration options
         tags (list<str>): List of tags matched to the langauge
         lang1_tagger (StanfordNERTagger): The Stanford NER Tagger for language 1
         lang2_tagger (StanfordNERTagger): The Stanford NER Tagger for language 2
     """
 
-    def __init__(self, cs_model, transi_matrix, tags):
+    def __init__(self, cs_model, transi_matrix, tags, local_config=None):
+        if local_config is None:
+            local_config = copy.deepcopy(CONFIGS)
         self.cs_model = cs_model
         self.transi_matrix = transi_matrix
         self.tags = tags
-        self.lang1_tagger = StanfordNERTagger(CONFIGS["lang1_class"],
-                                              CONFIGS["class_jar"])
-        self.lang2_tagger = StanfordNERTagger(CONFIGS["lang2_class"],
-                                              CONFIGS["class_jar"])
+        self.local_config = local_config
+        self.lang1_tagger = StanfordNERTagger(local_config["lang1_class"],
+                                              local_config["class_jar"])
+        self.lang2_tagger = StanfordNERTagger(local_config["lang2_class"],
+                                              local_config["class_jar"])
 
     def tag_list(self, word_list):
         """Tagger generates a list of tags, which contains multiple pieces of
@@ -168,7 +176,7 @@ class Evaluator:
                 lang = hmmtags[k]
 
             # Processing chunks of words at a time
-            chunk_size = CONFIGS["ner_chunk_size"]
+            chunk_size = self.local_config["ner_chunk_size"]
             index = k % chunk_size
 
             if index == 0:
@@ -184,12 +192,12 @@ class Evaluator:
 
             # Mark as NE if either NER tagger identifies it
             if lang1_tag != 'O' or lang2_tag != 'O':
-                NE = "{}/{}".format(lang1_tag, lang2_tag)
+                ne = "{}/{}".format(lang1_tag, lang2_tag)
             else:
-                NE = "O"
+                ne = "O"
 
             # Record probabilities
-            if lang in CONFIGS["lang_set"]:
+            if lang in self.local_config["lang_set"]:
                 hmm_prob = round(hmm.transi_matrix[prev_lang][lang], 2)
                 lang1_prob = round(self.cs_model.prob(self.tags[0], word), 2)
                 lang2_prob = round(self.cs_model.prob(self.tags[1], word), 2)
@@ -204,12 +212,11 @@ class Evaluator:
                 lang2_prob = "N/A"
                 total_prob = "N/A"
 
-            tagged_tokens.append((word, lang, NE,
+            tagged_tokens.append((word, lang, ne,
                                  str(lang1_prob), str(lang2_prob),
                                  str(hmm_prob), str(total_prob)))
 
         return tagged_tokens
-
 
     def annotate(self, corpus):
         """Annotates a corpus by adding tags for the words of the corpus.
@@ -249,7 +256,6 @@ class Evaluator:
         if VERBOSE:
             print("Annotation file written")
 
-
     def evaluate(self, gold_standard):
         """Evaluates the system, comparing system output to the gold standard's
             tags. The final file will be:
@@ -277,28 +283,28 @@ class Evaluator:
 
             # Tag the text based on the provided models
             annotated_output = self.tag_list(text)
-            _, lang_tags, NE_tags, _, _, _, _  = map(list, zip(*annotated_output))
+            _, lang_tags, ne_tags, _, _, _, _  = map(list, zip(*annotated_output))
 
             # Reset counters to 0, prepare for checking with the gold_standard
-            langCorrect = langTotal = NECorrect = NETotal = 0
+            lang_correct = lang_total = ne_correct = ne_total = 0
             evals = []
 
             # Compare gold standard and model tags
-            for lang, NE, gold in zip(lang_tags, NE_tags, gold_tags):
+            for lang, NE, gold in zip(lang_tags, ne_tags, gold_tags):
                 # Evaluate language tags
                 if gold in CONFIGS["lang_set"]:
-                    langTotal += 1
+                    lang_total += 1
                     if gold == lang:
-                        langCorrect += 1
+                        lang_correct += 1
                         evals.append("Correct")
                     else:
                         evals.append("Incorrect")
 
                 # Evaluate NE tags
                 elif gold == CONFIGS["ne_tag"]:
-                    NETotal += 1
+                    ne_total += 1
                     if NE != 'O':
-                        NECorrect += 1
+                        ne_correct += 1
                         evals.append("Correct")
                     else:
                         evals.append("Incorrect")
@@ -309,22 +315,21 @@ class Evaluator:
 
             # Write the final results to file
             output.write("Language Accuracy: {}\n".format(
-                langCorrect / float(langTotal)))
+                lang_correct / float(lang_total)))
             output.write("NE Accuracy: {}\n".format(
-                NECorrect / float(NETotal)))
+                ne_correct / float(ne_total)))
 
             output.write("Token\tGold Standard\tTagged Language"
                          "\tNamed Entity\tEvaluation\n")
 
-            for all_columns in zip(text, gold_tags, lang_tags, NE_tags, evals):
+            for all_columns in zip(text, gold_tags, lang_tags, ne_tags, evals):
                 output.write("\t".join(all_columns) + "\n")
 
             if VERBOSE:
                 print("Evaluation file written")
 
 
-# eval.py [gold_standard] test_corpus
-def main(argc, argv):
+def main(local_config=None):
     """Main prep work and evaluation. Process:
     1. Get corpora
     2. Create NGram models
@@ -332,13 +337,19 @@ def main(argc, argv):
     4. Build Markov model with Expectation Minimization
     5. Annotate
     6. Optionally evaluate performance on gold standard
+
+    Args:
+        local_config (list<str>): Optional local changes to the parameters.
+            Defaults to the global configuration.
     """
-    n = CONFIGS["ngram"]
-    tagset = list(CONFIGS["lang_set"])
+    if local_config is None:
+        local_config = CONFIGS
+    n = local_config["ngram"]
+    tagset = list(local_config["lang_set"])
 
     # Process training corpora
-    lang1_data = split_words(open(CONFIGS["lang1_train"], mode="r").read())
-    lang2_data = split_words(open(CONFIGS["lang2_train"], mode="r").read())
+    lang1_data = split_words(open(local_config["lang1_train"], mode="r", encoding="utf8").read())
+    lang2_data = split_words(open(local_config["lang2_train"], mode="r", encoding="utf8").read())
 
     # Create language model of training corproa
     lang1_model = CNGram(tagset[0], lang1_data, n)
@@ -346,22 +357,22 @@ def main(argc, argv):
     cs_model = CodeSModel([lang1_model, lang2_model])
 
     # Extract tags from gold standard
-    gold_standard = open(CONFIGS["gold_path"], mode="r")
-    gold_delimiter = CONFIGS["gold_delimiter"]
+    gold_standard = open(local_config["gold_path"], mode="r")
+    gold_delimiter = local_config["gold_delimiter"]
     gold_tags = [x.split(gold_delimiter)[-1].strip() for x in gold_standard.readlines()]
 
     # Convert all tags to either lang1 or lang2 and remove others
-    gold_tags = [tagset[0] if x in CONFIGS["lang1_other"] else x for x in gold_tags]
-    gold_tags = [tagset[1] if x in CONFIGS["lang2_other"] else x for x in gold_tags]
+    gold_tags = [tagset[0] if x in local_config["lang1_other"] else x for x in gold_tags]
+    gold_tags = [tagset[1] if x in local_config["lang2_other"] else x for x in gold_tags]
     gold_tags = [x for x in gold_tags if x in tagset]
 
     # Compute prior based on gold standard
     transitions = get_transi_matrix(gold_tags, tagset)
 
     # Create evaluator for input corpus, annotate, and evaluate
-    eval = Evaluator(cs_model, transitions, tagset)
-    eval.annotate(CONFIGS["infile"])
-    eval.evaluate(CONFIGS["gold_path"])
+    evaluator = Evaluator(cs_model, transitions, tagset)
+    evaluator.annotate(local_config["infile"])
+    evaluator.evaluate(local_config["gold_path"])
 
 
 def parse_config():
@@ -473,4 +484,4 @@ if __name__ == "__main__":
     if VERBOSE:
         print(CONFIGS)
 
-    main(len(sys.argv), sys.argv)
+    main()

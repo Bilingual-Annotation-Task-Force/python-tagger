@@ -141,7 +141,7 @@ class HiddenMarkovModel:
         Returns:
             list<str>: the most likely tag combinations
         """
-        tags = ["" for i in range(len(self.words))]
+        tags = [""] * len(self.words)
 
         # Find most probable final tag
         last = reduce(lambda x, y: x if self.v[len(self.words) - 1][x].prob >
